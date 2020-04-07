@@ -1,13 +1,13 @@
-# Tensor Calculator
+# Tensor Algebra
 
 A Scala language implementation of a tensor algebra. The basic operations of
 the algebra are both highly expressive, and highly parallelizable.
 
-The basic operations of the albegra are individually simple to understand. The
+The basic operations of the algebra are individually simple to understand. The
 algebra is expressive, meaning that even extremely complex N-dimensional computations
-can be completely expressed as combinations of these basic operations:
+can be completely expressed as combinations of these basic operations. For example,
  matrix multiplication, convolution and cross-correlation, Fourier
-transforms, etc.
+transforms, etc. can all be expressed with this algebra without looping or recursion.
 
 Each of the algebra's operations is amenable to highly parallelized implementations.
 Therefore it is possible to define different evaluators for efficiently calculating
@@ -45,7 +45,7 @@ way to carry out the calculation at runtime. Heavy use of recursion makes the ru
 job of devising an efficient execution plan quite difficult -- impractically so
 for even moderately complex tensor expressions such as N-dimensional convolution.
 
-### Convoluation and Cross-Correlation Implemented in Tensor Algebra
+### Convolution and Cross-Correlation Implemented in Tensor Algebra
 
 A third option exists for implementing arbitrarily complex operations like N-dimensional
 convolution and cross-correlation. By combing a few simple operations (that is,
@@ -78,7 +78,9 @@ we can define different tensor expression evaluators which will automatically
 plan very efficient use of highly parallelized computing resources, such as GPAs,
 DSPs, FGPAs, multi-core CPUs, as well as cloud-based map-reduce systems.
 
-## Defining Some Basic Additional Operations
+#### Algebraic Definitions of Convolution and Cross-Correlation
+
+## Some Simple Tensor Operations
 
 Definitions of some basic operations that one would expect to be present in
 an N-dimensional numerical array algebra:
