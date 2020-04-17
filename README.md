@@ -76,7 +76,9 @@ With this tensor algebra we define very complex operations from linear and high-
 matrix multiplication, convolution, cross-correlation, Fourier transformation, complex image and sound manipulation functions. By interpreting data graphs as sparse matrices, you can implement many complex
 graph algorithms in the tensor algebra as well.
 
-### Example: 2-D Cross-Correlation Defined using Tensor Algebra
+## Tensor Algebra API Exaples
+
+### Example 1: 2-D Cross-Correlation Defined using Tensor Algebra
 
 Let's consider the cross-correlation of an ![NxM](docs/images/NxM.png) 2-D matrix ![Mat](docs/images/Mat.png) with a ![3x3](docs/images/Mat.png) 2-D matrix ![k](docs/images/k.png) (aka *kernel*). The ![star](docs/images/star.png) symbol is usually used to represent cross-correlation in
 standard math.
@@ -173,7 +175,42 @@ The `cross2D` expression constructs the cross-product of any ![NxM](docs/images/
 
 *Note: Some necessary checking is elided here for simplicity: we should be making sure `A` is indeed 2-D, that `k` is indeed ![3x3](docs/images/3x3.png) in size, etc.*
 
-## Dimensionality and Magnitude
+## Example 2: [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) in the Tensor Algebra
+
+We can define an expression computing generation X+1 the Game of Life from generation X. The value of the `(i, j)`*th* element in generation X+1 can be completely determined from the 9 elements comprising the ![3x3](docs/images/3x3.png) neighborhood around `(i, j)` in generation X.
+
+In the Tensor Algebra, this means we can define the ![NxM](docs/images/NxM.png) tensor describing X+1*th* generation as a custom reduction of an ![NxMx9](docs/images/NxMx9.png) tensor built from the X*th* generation.
+
+Not shown here: how to define custom reduce operations. Because reduce operations may be run on a variety of different hardware, there are different ways to express them. There are plug-in libraries supporting different runtime environments:
+* Java VM: reduce operations can be expressed in any JVM language
+* OpenCL: For highly parallel compute hardware evaluation: GPUs, DSPs, FGPAs, etc.
+
+```
+// A custom reducing function. Desciption of how to make these
+// described elsewhere: must be defined to be compatible with the
+// evaluation runtime.
+val lifeReduction: ReducingOp = ???
+
+// Game Of Life computation for 1 generation
+def lifeGeneration(genX: Tensor[Int]): Tensor[Int] = {
+  val Array(N, M) = genX.magnitude
+
+  // 1. Join 9 translated versions of genX into a single NxMx9 tensor
+  // --
+  val translations =
+    join((for(ii <- -1 to 1;
+             jj <- -1 to 1) yield {
+         translate(A, Array(_X, _Y), Array(ii, jj))
+         }), _Z)
+
+  // 2. Reduce the NxMx9 tensor back down to NxM
+  reduce(translations, _Z, lifeReduction)
+}
+```
+
+An OpenCL implementation of the 1 generation reduction evaluated on a single mid-range GPU will run 20-50x faster than a general JVM implementation.
+
+## Basic Concepts: Dimensionality and Magnitude
 
 ### Scalar Values, or Every Tensor has Infinite Dimension
 
@@ -230,6 +267,15 @@ Definitions of some basic operations in the Tensor Algebra.
 ### *Split*
 
 ### *Join*
+
+## Writing Custom Reduce Operations
+
+#### In Any JVM Language: Slowest but Easiest
+
+#### In Aparapi-compatible Java: Faster but Harder
+
+#### In OpenCL Driver Runtime: Fastest but Requires OpenCL Knowledge
+
 
 [src-NxM]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
