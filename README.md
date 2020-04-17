@@ -8,7 +8,7 @@ Therefore it is possible to define different evaluators for efficiently calculat
 tensor algebra expressions with parallel processors of
 varying scale:
 * Hardware computational elements such as GPUs or GPU arrays, multi-core CPUS,
-  DSPs, FPGAs, etc.
+  DSPs, FPGAs, and other specialty computation hardware
 * Cloud-based map-reduce systems such as Spark, Google Tensorflow, etc.
 
 The basic operations of the algebra are individually simple to understand. The
@@ -98,22 +98,52 @@ We can define this in 5-steps using tensor algebra operations:
 1. Construct 9 translated versions of ![Mat][Mat], and join them into a single ![NxMx9][NxMx9] shaped tensor
   * One version each translated with offsets *(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1),
     (1, 0), and (1, 1)*
-  * The values of the 9 tensors at index *(i, j)* taken together are the values of the original ![3x3][3x3]
+  * Note that the values of the 9 tensors at index *(i, j)* taken together are the values of the original ![3x3][3x3]
     neighborhood of element *(i, j)* in ![Mat][Mat]
 2. Broadcast ![k][k] into a ![NxMx3x3][NxMx3x3] shaped tensor, and reshape to ![NxMx9][NxMx9] shape
 3. Join tensors from steps (1) and (2) into a single ![NxMx9x2][NxMx9x2] shaped tensor
 4. Reduce the tensor from (3) down to ![NxMx9][NxMx9] shape by multiplicative reduction of the 4*th* dimension
-  * In effect, this step multiplies each element in the neighborhood of each *i,j-th* ![Mat][Mat]
+  * In effect, this step multiplies each element in the neighborhood of each ![Matij][Matij]
     element with the corresponding kernel element.
 5. Reduce the ![NxMx9][NxMx9] tensor from (4) down to ![NxM][NxM] shape by additive reduction of the 3*rd* dimension
-  * In effect, this sums together the 9 products of the original ![Mat][Mat] elements and the
-    kernel elements in the neighborhood of each *i,j-th* element of ![Mat][Mat]
+  * In effect, this sums together the 9 products of the original ![Matij][Matij] element neighborhood and the
+    kernel elements
 
-(Note: steps (4) and (5) would more efficiently be defined as a single reduce along both 4*th* and 3*rd* dimensions. For simplicity, the steps are described explicitly to make relationship to the ![Cij][Cij] more obvious.)
+(Note: steps (4) and (5) would more efficiently be defined as a single ***reduce*** along both 4*th* and 3*rd* dimensions. For simplicity, the steps are described explicitly to make relationship to the ![Cij][Cij] more obvious.)
 
-As a single equation using tensor algebra:
+#### ![star][star] Operator in Scala using Tensor Algebra API
 
-## Why is This better than Imperative or Functional Programming?
+```
+/** 2D cross-product of tensor A of magnitude (N x M), and kernel k of
+magnitude (3 x 3). **/
+
+cross2D(magA: TensorShape, A: TensorExpr[Float], k: TensorExpr[Float]): TensorExpr[Float] = {
+  val (N, M) = (magA.magnitude(_X), magA.magnitude(_Y))
+
+  val translations =
+    join((for(ii <- -1 to 1;
+             jj <- -1 to 1) yield {
+         translate(A, Array(_X, _Y), Array(ii, jj))
+         }), _Z)
+  val repeated_kernel = reshape(
+    broadcast(k, Array(_X, _Y), Array(N, M)),
+    Array(N, M, 9))
+
+  reduce(
+    reduce(join(translations, repeated_kernel, _W), _W, _PRODUCT),
+    _Z, _SUM)
+  }
+}
+```
+
+* Input: `A` is a ![NxM][NxM] tensor expression, and `k` is a ![3x3][3x3] tensor expression
+* `_X`, `_Y`, `_Z`, `_W` are nominal constants representing the first,
+second, and higher dimensions respectively.
+* `_SUM` and `_PRODUCT` constants representing cumulative, associative arithmetic operations summation and product respectively.
+* `translations` is a tensor expression joining 9 different translated versions of the value of `A` into a single ![NxMx9][NxMx9] tensor
+* `repeated_kernel` is
+a tensor expression broadcasting the value of `k` (a ![3x3][3x3] tensor) in the `_X` and `_Y` dimensions and reshaping to ![NxMx9][NxMx9] shape
+* The resultant tensor is constructed by joining `translations` and `repeated_kernel` (by stacking in the `_W` dimension), and then reducing by multiplication in the `_W` dimension, and finally summation in the `_Z` dimension. The result will be an ![NxM][NxM] tensor expression. The expression constructs the cross-product of the value of `A` and the value of `k`.
 
 ## Some Simple Tensor Operations
 
@@ -123,10 +153,9 @@ an N-dimensional numerical array algebra:
 * Construction of a new tensor of arbitrary arity and dimension
   * Constructing a tensor filled with zeros or ones
   * Constructing an identity matrix
-* Arbitrary associative arithmetic combination of 2 or more tensors
-  * Aka the *acomb* operation
+* Arithmetic combination of 2 or more tensors
 
-### Scalar Values
+### Scalar Values, or Every Tensor has Infinite Dimension
 
 In the tensor algebra a scalar value is nothing more than a 0-dimension  tensor.
 
@@ -151,22 +180,45 @@ In the tensor algebra a scalar value is nothing more than a 0-dimension  tensor.
 ### *Reduce*
 
 
-[NxM]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[3x3]: http://www.sciweavers.org/tex2img.php?eq=3\times3&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[NxMx9]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times9&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[NxMx3x3]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times3\times3&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[NxMx9x2]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times9\times2&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[Mat]: http://www.sciweavers.org/tex2img.php?eq=Mat&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[Matstar]: http://www.sciweavers.org/tex2img.php?eq=Mat^*&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[k]: http://www.sciweavers.org/tex2img.php?eq=k&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[C]: http://www.sciweavers.org/tex2img.php?eq=C&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[Eq1]: http://www.sciweavers.org/tex2img.php?eq=C=Mat%20\star%20k&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[Cij]: http://www.sciweavers.org/tex2img.php?eq=C_{ij}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[star]: http://www.sciweavers.org/tex2img.php?eq=\star&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[sigma]: http://www.sciweavers.org/tex2img.php?eq=\sum&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[Matij]: http://www.sciweavers.org/tex2img.php?eq=Mat_{ij}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[Eq2]: http://www.sciweavers.org/tex2img.php?eq=C_{ij}=\sum_{s=-1}^1\sum_{t=-1}^1%20Mat^*_{(i%2Bs)(j%2Bt)}k_{st}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[Mat*_def]: http://www.sciweavers.org/tex2img.php?eq=Mat^*=join_2(join_1(translate^2([1,1],0,Mat),broadcast^2([1,M%2b1],0)),broadcast^2([N%2b2,1],0))&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0
-[irange1]: http://www.sciweavers.org/tex2img.php?eq=\{1,N%2B1\}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[jrange1]: http://www.sciweavers.org/tex2img.php?eq=\{1,M%2B1\}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
-[N+2xM+2]: http://www.sciweavers.org/tex2img.php?eq=(N%2B2)\times%20(M%2B2)&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+[NxM]: docs/images/NxM.png
+[src-NxM]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[3x3]: docs/images/3x3.png
+[src-3x3]: http://www.sciweavers.org/tex2img.php?eq=3\times%203&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[NxMx9]: docs/images/NxMx9.png
+[src-NxMx9]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times9&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+x-[NxMx3x3]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times%203\times%203&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+x-[NxMx9x2]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times9\times2&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[Mat]: docs/images/Mat.png
+[src-Mat]: http://www.sciweavers.org/tex2img.php?eq=Mat&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[Matstar]: docs/images/Matstar.png
+[src-Matstar]: http://www.sciweavers.org/tex2img.php?eq=Mat^*&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[k]: docs/images/k.png
+[src-k]: http://www.sciweavers.org/tex2img.php?eq=k&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[C]: docs/images/C.png
+[src-C]: http://www.sciweavers.org/tex2img.php?eq=C&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[Eq1]: docs/images/Eq1.png
+[src-Eq1]: http://www.sciweavers.org/tex2img.php?eq=C=Mat%20\star%20k&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[Cij]: docs/images/Cij.png
+[src-Cij]: http://www.sciweavers.org/tex2img.php?eq=C_%7bij%7d&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[star]: docs/images/star.png
+[src-star]: http://www.sciweavers.org/tex2img.php?eq=\star&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[sigma]: docs/images/sigma.png
+[src-sigma]: http://www.sciweavers.org/tex2img.php?eq=\sum&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[Matij]: docs/images/Matij.png
+[src-Matij]: http://www.sciweavers.org/tex2img.php?eq=Mat_%7bij%7d&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+
+[Eq2]: docs/images/Eq2.png
+[src-Eq2]: http://www.sciweavers.org/tex2img.php?eq=C_%7bij%7d=\sum_%7bs=-1%7d^1\sum_%7bt=-1%7d^1%20Mat^*_%7b%28i%2Bs%2B1%29%28j%2Bt%2B+1%29%7dk_%7bst%7d&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
