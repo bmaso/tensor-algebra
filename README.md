@@ -78,90 +78,142 @@ graph algorithms in the tensor algebra as well.
 
 ### Example: 2-D Cross-Correlation Defined using Tensor Algebra
 
-Let's consider the cross-correlation of an ![NxM][NxM] 2-D matrix ![Mat][Mat] with a ![3x3][3x3] 2-D matrix ![k][k] (aka *kernel*). The ![star][star] symbol is usually used to represent cross-correlation in
+Let's consider the cross-correlation of an ![NxM](docs/images/NxM.png) 2-D matrix ![Mat](docs/images/Mat.png) with a ![3x3](docs/images/Mat.png) 2-D matrix ![k](docs/images/k.png) (aka *kernel*). The ![star](docs/images/star.png) symbol is usually used to represent cross-correlation in
 standard math.
 
-![Eq1][Eq1]
+![Eq1](docs/images/Eq1.png)
 
-Each element ![Cij][Cij] of the cross-correlation is the sum of the element-wise product of 9 elements in the neighborhood of ![Matij][Matij] with the 9 elements of ![k][k]. Our goal is to define the ![star][star] operation using tensor algebra operations only. First, let's define ![star][star] in standard algebra with the equation:
+Each element ![Cij](docs/images/Cij.png) of the cross-correlation is the sum of the element-wise product of 9 elements in the neighborhood of ![Matij](docs/images/Matij.png) with the 9 elements of ![k](docs/images/k.png). Our goal is to define the ![star](docs/images/star.png) operation using tensor algebra operations only. First, let's define ![star](docs/images/star.png) in standard algebra with the equation:
 
-![Eq2][Eq2]
+![Eq2](docs/images/Eq2.png)
 
- where ![Matstar][Matstar] is a "dilated" version of ![Mat][Mat]: expanded by 1 element in each 2-D direction (intuitively: up, down, left, & right) with 0 values along the edges and in the corners.
+ where ![Matstar](docs/images/Matstar.png) is a "dilated" version of ![Mat][Mat]: expanded by 1 element in each 2-D direction (intuitively: up, down, left, & right) with 0 values along the edges and in the corners.
 
-#### "![star][star]" Operator as a 4-D ***reduce*** in the Tensor Algebra
+ This animation, borrowed from the article linked to above, illustrates the concept (though unfortunately the author uses the inaccurate term *convolve*, which is often confused with the more correct *cross-correlation* in mathematical computing):
 
-In the tensor algebra you do not use iterative operators such as "![sigma][sigma]". Instead we define all arithmetic combinations of tensors using ***reduce***. We define the 2-D "![star][star]" operation combining an ![NxM][NxM] shaped tensor with a ![3x3][3x3] shaped kernel tensor as a single ***reduce*** of a *4-D* ![NxMx9x2][NxMx9x2] shaped tensor back down to 2-D dimensionality.
+ ![Cross-correlation animation](https://glassboxmedicine.files.wordpress.com/2019/07/convgif.gif?w=616)
+
+ The yellow box represents a ![3x3](docs/images/3x3.png) kernel, which is being multiplied with the ![3x3](docs/images/3x3.png) neighborhood of each individual member of the green matrix. The product of the multiplication is then summed up to produce the output value of each element in the resultant matrix (pink).
+
+#### "![star](docs/images/star.png)" Operator as a 4-D ***reduce*** in the Tensor Algebra
+
+In the tensor algebra you do not use iterative operators such as "![sigma](docs/images/sigma.png)". Instead we define all arithmetic combinations of tensors using ***reduce***. We define the 2-D "![star](docs/images/star.png)" operation combining an ![NxM](docs/images/NxM.png) shaped tensor with a ![3x3](docs/images/3x3.png) shaped kernel tensor as a single ***reduce*** of a *4-D* ![NxMx9x2](docs/images/NxMx9x2.png) shaped tensor back down to 2-D dimensionality.
 
 We can define this in 5-steps using tensor algebra operations:
 
-1. Construct 9 translated versions of ![Mat][Mat], and join them into a single ![NxMx9][NxMx9] shaped tensor
+1. Construct 9 translated versions of ![Mat](docs/images/Mat.png), and join them into a single ![NxMx9](docs/images/NxMx9.png) shaped tensor
   * One version each translated with offsets *(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1),
     (1, 0), and (1, 1)*
-  * Note that the values of the 9 tensors at index *(i, j)* taken together are the values of the original ![3x3][3x3]
-    neighborhood of element *(i, j)* in ![Mat][Mat]
-2. Broadcast ![k][k] into a ![NxMx3x3][NxMx3x3] shaped tensor, and reshape to ![NxMx9][NxMx9] shape
-3. Join tensors from steps (1) and (2) into a single ![NxMx9x2][NxMx9x2] shaped tensor
-4. Reduce the tensor from (3) down to ![NxMx9][NxMx9] shape by multiplicative reduction of the 4*th* dimension
-  * In effect, this step multiplies each element in the neighborhood of each ![Matij][Matij]
+  * Note that the values of the 9 tensors at index *(i, j)* taken together are the values of the original ![3x3](docs/images/3x3.png)
+    neighborhood of element *(i, j)* in ![Mat](docs/images/Mat.png)
+2. Broadcast ![k](docs/images/k.png) into a ![NxMx3x3](docs/images/NxMx3x3.png) shaped tensor, and reshape to ![NxMx9](docs/images/NxMx9.png) shape
+3. Tensors from steps (1) and (2) are both 3-D tensors. In this step we join them along the 4*th* dimension into a single ![NxMx9x2](docs/images/NxMx9x2.png) shaped tensor
+4. Reduce the tensor from (3) down to ![NxMx9](docs/images/NxMx9.png) shape by multiplicative reduction of the 4*th* dimension
+  * In effect, this step multiplies each element in the neighborhood of each ![Matij](docs/images/Matij.png)
     element with the corresponding kernel element.
-5. Reduce the ![NxMx9][NxMx9] tensor from (4) down to ![NxM][NxM] shape by additive reduction of the 3*rd* dimension
+5. Reduce the ![NxMx9](docs/images/NxMx9.png) tensor from (4) down to ![NxM](docs/images/NxM.png) shape by additive reduction of the 3*rd* dimension
   * In effect, this sums together the 9 products of the original ![Matij][Matij] element neighborhood and the
     kernel elements
 
-(Note: steps (4) and (5) would more efficiently be defined as a single ***reduce*** along both 4*th* and 3*rd* dimensions. For simplicity, the steps are described explicitly to make relationship to the ![Cij][Cij] more obvious.)
+(Note: steps (4) and (5) would more efficiently be defined as a single ***reduce*** along both 4*th* and 3*rd* dimensions. For simplicity, the steps are described explicitly to make relationship to the ![Cij](docs/images/Cij.png) more obvious.)
 
-#### ![star][star] Operator in Scala using Tensor Algebra API
+#### ![star](docs/images/star.png) Operator in Scala using Tensor Algebra API
+
+The Tensor Algebra API is essentially a set of `TensorExpr` combinator functions. Each of the basic operators ***translate***, ***permute***, ***reshape***, etc. produce a new `TensorExpr` from input `TensorExpr` values.
 
 ```
 /** 2D cross-product of tensor A of magnitude (N x M), and kernel k of
 magnitude (3 x 3). **/
 
-cross2D(magA: TensorShape, A: TensorExpr[Float], k: TensorExpr[Float]): TensorExpr[Float] = {
-  val (N, M) = (magA.magnitude(_X), magA.magnitude(_Y))
+cross2D(A: TensorExpr[Float], k: TensorExpr[Float]): TensorExpr[Float] = {
+  val Array(N, M) = A.magnitude
 
+  // 1. Join 9 translated versions of A into a single NxMx9 tensor
+  // --
   val translations =
     join((for(ii <- -1 to 1;
              jj <- -1 to 1) yield {
          translate(A, Array(_X, _Y), Array(ii, jj))
          }), _Z)
+
+  // 2. broadcast the kernel to NxMx3x3 tensor, then reshape to NxMx9
+  // --     
   val repeated_kernel = reshape(
     broadcast(k, Array(_X, _Y), Array(N, M)),
     Array(N, M, 9))
 
+  // 3. Join the two tensors into NxMx9x2 shape
+  // --
+  val joined = join(translations, repeated_kernel, _W)
+
+  // 4. & 5. Reduce first by multiplication in _W dimension, then
+  //    summation in the _Z dimension: yields NxM cross-correlated tensor
+  // --
   reduce(
-    reduce(join(translations, repeated_kernel, _W), _W, _PRODUCT),
+    reduce(, _W, _PRODUCT),
     _Z, _SUM)
   }
 }
 ```
 
-* Input: `A` is a ![NxM][NxM] tensor expression, and `k` is a ![3x3][3x3] tensor expression
+* Input: `A` is a ![NxM](docs/images/NxM.png) tensor expression, and `k` is assumed to be a ![3x3](docs/images/3x3.png) tensor expression
+  * `A.magnitude` yields `Array(N, M)`, the size of the 2-D tensor `A` in the `_X` and `_Y` dimensions.
 * `_X`, `_Y`, `_Z`, `_W` are nominal constants representing the first,
 second, and higher dimensions respectively.
-* `_SUM` and `_PRODUCT` constants representing cumulative, associative arithmetic operations summation and product respectively.
-* `translations` is a tensor expression joining 9 different translated versions of the value of `A` into a single ![NxMx9][NxMx9] tensor
+* `_SUM` and `_PRODUCT` are reducing functions for summation and product respectively
+* `translations` is a tensor expression joining 9 different translated versions of the value of `A` into a single ![NxMx9](docs/images/NxMx9.png) tensor
+  * Note that `translate` backfills with 0 values by default
 * `repeated_kernel` is
-a tensor expression broadcasting the value of `k` (a ![3x3][3x3] tensor) in the `_X` and `_Y` dimensions and reshaping to ![NxMx9][NxMx9] shape
-* The resultant tensor is constructed by joining `translations` and `repeated_kernel` (by stacking in the `_W` dimension), and then reducing by multiplication in the `_W` dimension, and finally summation in the `_Z` dimension. The result will be an ![NxM][NxM] tensor expression. The expression constructs the cross-product of the value of `A` and the value of `k`.
+a tensor expression broadcasting the value of `k` (a ![3x3](docs/images/3x3.png) tensor) in the `_X` and `_Y` dimensions and reshaping to ![NxMx9](docs/images/NxMx9.png) shape
+* `joined` joins `translations` and `repeated_kernel` by stacking in the `_W` dimension
+* Finally, `cross2D` yields a tensor expression which reduces `joined` by multiplication in the `_W` dimension, and then reduces by summation in the `_Z` dimension
+  * The result will be an ![NxM](docs/images/NxM.png) tensor expression
 
-## Some Simple Tensor Operations
+The `cross2D` expression constructs the cross-product of any ![NxM](docs/images/NxM.png) tensor expression `A` and any ![3x3](docs/images/3x3.png) tensor expression `k`.
 
-Definitions of some basic operations that one would expect to be present in
-an N-dimensional numerical array algebra:
-* Scalar values
-* Construction of a new tensor of arbitrary arity and dimension
-  * Constructing a tensor filled with zeros or ones
-  * Constructing an identity matrix
-* Arithmetic combination of 2 or more tensors
+*Note: Some necessary checking is elided here for simplicity: we should be making sure `A` is indeed 2-D, that `k` is indeed ![3x3](docs/images/3x3.png) in size, etc.*
+
+## Dimensionality and Magnitude
 
 ### Scalar Values, or Every Tensor has Infinite Dimension
 
-In the tensor algebra a scalar value is nothing more than a 0-dimension  tensor.
+Think of a scalar tensor as a simple box holding a single value. The magnitude of this "box" is 1 along every side.
 
-### Constructing Tensors
+If you think about it, a scalar tensor has magnitude 1 in every dimension. It could be thought of as having magnitude 1 in `_X`, and also having magnitude 1 in `_Y`, in `_Z`, or in any higher dimension.
 
-### *Carith-op* "Commutative & Associative Arithmetic Operation"
+A *scalar tensor* (or simply a "scalar") then is any tensor with magnitude 1 in every dimension. It has a single element value. Any ***reduce*** operation on a scalar tensor in any dimension(s) will yield the exact same scalar tensor.
+
+A scalar arithmetic value is synonymous with a scalar tensor have the same single element value in this Tensor Algebra. For example, the integer 18 is synonymous with a scalar tensor having element value 18. There is a 1:1 bidirectional mapping between the number line and the set of all numeric scalar tensors.
+
+Note that every tensor has magnitude of at least 1 in every dimension. For example, a 3x3 2-D tensor has depth 3 in the `_X` dimension, 3 in the `_Y` dimension, 1 in the `_Z` dimension and 1 in every other dimension after `_Z`.
+
+#### The Order and Naming of Dimensions
+
+Without a common definition of dimensions, a 3x3 tensor could arbitrarily have magnitude 3 in the `_X` and `_Y` dimensions, the `_Y` and `_Z` dimensions, the `_X` and `_W` dimensions, etc.
+
+In order to be able to compare and combine tensors with each other we assume there is a common order to dimensions. We assign the nominal symbol "`_X`" to the first dimension, "`_Y`" to the second dimension, and "`_Z`" to the third. For dimensions 4 and above we start naming them with the letter "`_W`", and work backwards through the English alphabet: "`_V`", "`_U`", "`_T`", "`_S`", then "`_R`", etc. "`_A`" then is the 26*th* dimension. After that we use "`_XX`", "`_YY`", etc.
+
+So when we say a tensor is magnitude "3x4", it is understood this means magnitude 3 in the `_X` dimension, and magnitude 4 in the `_Y` dimension.
+
+A tensor described as "3x3 in the `_X` and `_Z` dimensions" would more formally be said to have magnitude 3x1x3.
+
+#### Magnitude Dictates Dimensionality
+
+When we say a tensor is "2-D", or "3-D", or any "*n*-D" what we are describing is the last dimension with magnitude greater than 1. So a 1-D tensor of magnitude 3 has magnitude 3 in the `_X` dimension, and magnitude 1 for every dimension after `_X`.
+
+A 3-D tensor will have a magnitude greater than 1 in the `_Z` direction. It *may* have magnitude greater than 1 in the `_X` or `_Y` directions (and it may not). It definitely will have magnitude 1 in the `_W` dimension and every dimension after.
+
+This means scalar tensors are 0-D, since a scalar tensor has magnitude 1 in every dimension.
+
+## Some Simple Tensor Operations
+
+Definitions of some basic operations in the Tensor Algebra.
+
+### Constructing Tensors Filled with Constant Values
+
+### Constructing an Identity Tensor
+
+### Slicing a Tensor
 
 ## More Rigorous Definitions of The Basic Algebra Operations
 
@@ -169,56 +221,42 @@ In the tensor algebra a scalar value is nothing more than a 0-dimension  tensor.
 
 ### *Permute*
 
+### *Broadcast*
+
+### *Reduce*
+
 ### *Reshape*
 
 ### *Split*
 
 ### *Join*
 
-### *Broadcast*
-
-### *Reduce*
-
-
-[NxM]: docs/images/NxM.png
 [src-NxM]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[3x3]: docs/images/3x3.png
 [src-3x3]: http://www.sciweavers.org/tex2img.php?eq=3\times%203&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[NxMx9]: docs/images/NxMx9.png
 [src-NxMx9]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times9&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-x-[NxMx3x3]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times%203\times%203&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+[src-NxMx3x3]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times%203\times%203&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-x-[NxMx9x2]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times9\times2&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
+[src-NxMx9x2]: http://www.sciweavers.org/tex2img.php?eq=N\times%20M\times9\times2&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[Mat]: docs/images/Mat.png
 [src-Mat]: http://www.sciweavers.org/tex2img.php?eq=Mat&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[Matstar]: docs/images/Matstar.png
 [src-Matstar]: http://www.sciweavers.org/tex2img.php?eq=Mat^*&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[k]: docs/images/k.png
 [src-k]: http://www.sciweavers.org/tex2img.php?eq=k&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[C]: docs/images/C.png
 [src-C]: http://www.sciweavers.org/tex2img.php?eq=C&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[Eq1]: docs/images/Eq1.png
 [src-Eq1]: http://www.sciweavers.org/tex2img.php?eq=C=Mat%20\star%20k&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[Cij]: docs/images/Cij.png
 [src-Cij]: http://www.sciweavers.org/tex2img.php?eq=C_%7bij%7d&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[star]: docs/images/star.png
 [src-star]: http://www.sciweavers.org/tex2img.php?eq=\star&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[sigma]: docs/images/sigma.png
 [src-sigma]: http://www.sciweavers.org/tex2img.php?eq=\sum&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[Matij]: docs/images/Matij.png
 [src-Matij]: http://www.sciweavers.org/tex2img.php?eq=Mat_%7bij%7d&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
 
-[Eq2]: docs/images/Eq2.png
 [src-Eq2]: http://www.sciweavers.org/tex2img.php?eq=C_%7bij%7d=\sum_%7bs=-1%7d^1\sum_%7bt=-1%7d^1%20Mat^*_%7b%28i%2Bs%2B1%29%28j%2Bt%2B+1%29%7dk_%7bst%7d&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=
