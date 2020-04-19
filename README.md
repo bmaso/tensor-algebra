@@ -26,7 +26,6 @@ The basic operations of this tensor algebra are:
   tensor to different indexes using fixed offset in one or more dimension
   * Translated tensors are "clipped" to the same dimensionality and magnitude as the original tensor
   * Translated tensors are "backfilled" with a constant value, 0 by default.
-* ***permute*** -- This is the general term for rotating a tensor, allowing rotation in multiple dimensions at once. Think of the rotational capabilities of a Rubic's Cube.
 * ***reshape*** -- Without altering the overall number of elements in a tensor, define a tensor which takes an original tensor's elements while altering the dimensionality and magnitude.
   * For example changing a 3x4x5 tensor into a 10x6 tensor. Same number of elements, different dimensionality and/or magnitude
 * ***split*** -- Divide a tensor into several tensors of reduced
@@ -51,7 +50,7 @@ very complex operations without undue complexity. These include
 
 ### Example 1: Additive Combination of 2 1-D Tensors
 
-The Tensor Algebra API is essentially a set of `TensorExpr` combinator functions. Each of the basic operators ***translate***, ***permute***, ***reshape***, etc. produce a new `TensorExpr` from input `TensorExpr` values.
+The Tensor Algebra API is essentially a set of `TensorExpr` combinator functions. Each of the basic operators ***translate***, ***reshape***, etc. produce a new `TensorExpr` from input `TensorExpr` values.
 
 Let's first consider how to simply add two 1-D tensors of the same magnitude together. This is the "Hello, World!" of GPU computing. We want to express element-by-element addition using the Tensor Algebra.
 
@@ -151,7 +150,7 @@ cross2D(Mat: TensorExpr[Float], k: TensorExpr[Float]): TensorExpr[Float] = {
   // 2. broadcast the kernel to NxMx3x3 tensor, then reshape to NxMx9
   // --     
   val repeated_kernel = reshape(
-    broadcast(k, Array(_X, _Y), Array(N, M)),
+    broadcast(k, Array(N, M)),
     Array(N, M, 9))
 
   // 3. Join the two tensors into NxMx9x2 shape
@@ -290,7 +289,7 @@ This means scalar tensors are 0-D, since a scalar tensor has magnitude 1 in ever
 
 ## Some Simple Tensor Operations
 
-Definitions of some basic operations using the Tensor Algebra. I intend these to illustrate the Tensor Algebra is capable of expressing higher level complex operators. 
+Definitions of some basic operations using the Tensor Algebra. I intend these to illustrate the Tensor Algebra is capable of expressing higher level complex operators.
 
 ### Constructing Tensors Filled with Constant Values
 
@@ -301,8 +300,6 @@ Definitions of some basic operations using the Tensor Algebra. I intend these to
 ## More Rigorous Definitions of The Basic Algebra Operations
 
 ### *Translate*
-
-### *Permute*
 
 ### *Broadcast*
 
