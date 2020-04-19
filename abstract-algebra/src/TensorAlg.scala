@@ -48,7 +48,7 @@ package object abstractions {
    **/
   sealed trait TensorExprAlg[ElT <: TensorElT, T]
   case class TensorFromArray[N, ElT <: TensorElT](arr: Array[N], offset: Int, len: Int)(implicit ev: ScalaElTMatches[N, ElT]) extends TensorExprAlg[ElT, Tensor[ElT]]
-  case class CopyTensorElementsToArray[N, ElT <: TensorElT](tensor: Tensor[ElT], arr: Array[N], offset: Int)(implicit ev: ScalaElTMatches[N, ElT]) extends TensorExprAlg[ElT, Either[ComputationError, Tensor[ElT]]]
+  case class CopyTensorElementsToArray[N, ElT <: TensorElT](tensor: Tensor[ElT], arr: Array[N], offset: Int)(implicit ev: ScalaElTMatches[N, ElT]) extends TensorExprAlg[ElT, Tensor[ElT]]
   case class Translate[ElT <: TensorElT](tensor: Tensor[ElT], dimensions: Array[Dimension], offsets: Array[Long]) extends TensorExprAlg[ElT, Tensor[ElT]]
   case class Broadcast[ElT <: TensorElT](tensor: Tensor[ElT], baseMagnitude: Array[Long]) extends TensorExprAlg[ElT, Tensor[ElT]]
   case class Reshape[ElT <: TensorElT](tensor: Tensor[ElT], reshapedMagnitude: Array[Long], sourceDimensionSequencing: Array[Dimension] = NaturalDimensionSequencing, targetDimensionSequencing: Array[Dimension] = NaturalDimensionSequencing) extends TensorExprAlg[ElT, Tensor[ElT]]
@@ -71,11 +71,6 @@ package object abstractions {
   type TensorExpr[ElT <: TensorElT, Eff] = Free[({type λ[A] = TensorExprAlg[ElT, A] })#λ, Eff]
 
   trait ComputationError
-
-  sealed abstract class ComputationComplete
-  case object ComputationComplete extends ComputationComplete {
-    def computationComplete(): ComputationComplete = this
-  }
 
   /** Tensor element types are restricted to just a few numeric types. All
    * runtime evaluators will support these element types

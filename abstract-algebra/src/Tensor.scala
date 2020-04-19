@@ -20,7 +20,6 @@ package bmaso.tensoralg.abstractions
  * The total numberof elements in the tensor is the `elementSize`. This is
  * computed as the product of the magntiude array.
  **/
-
 case class Tensor[ElT <: TensorElT](magnitude: Array[Int]) {
   def order = magnitude.length
   val elementSize = if (magnitude.isEmpty) 0 else magnitude.reduce(_ * _)
