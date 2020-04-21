@@ -18,7 +18,7 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
         Array.copy(array, offset, targetArray, targetOffset, length)
         tensor
 
-      case _ => ???
+      case t: IntTensor => ???
     }
   }
 }
