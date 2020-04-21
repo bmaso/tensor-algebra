@@ -9,7 +9,7 @@ object `abstract-algebra` extends ScalaModule {
   )
 }
 
-object `jvm-evaluator` extends ScalaModule {
+object `jvm-algebra` extends ScalaModule {
   def scalaVersion = "2.13.1"
 
   def moduleDeps = Seq(`abstract-algebra`)
