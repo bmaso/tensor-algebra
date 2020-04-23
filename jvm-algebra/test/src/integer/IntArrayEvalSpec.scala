@@ -46,4 +46,47 @@ class IntArrayEvalSpec extends FlatSpec {
                                  0, 1, 2,
                                  0, 4, 5))
   }
+
+  "An eval of broadcasting a 4x2 tensor with 5x3 base magnitude" should "yield a tensor with magnitude, order, elementSize, and element values as expected" in {
+    import IntTensorAlgebra._
+
+    val inputArray = Array(1, 3, 5, 7,
+                           2, 4, 6, 8)
+
+    val expr = tensorFromArray(inputArray, Array(4, 2))
+      .flatMap(broadcast(_, Array(5, 3)))
+      .flatMap({t =>
+        t.magnitude should be (Array(5, 3, 4, 2))
+        t.order should be (4)
+        t.elementSize should be (120)
+
+        //...test a few random elements to make sure broadcast projects the input tensor as expected...
+        t.valueAt(Array(0, 0, 0, 0)) should be (1)
+        t.valueAt(Array(0, 0, 1, 0)) should be (3)
+        t.valueAt(Array(0, 0, 2, 0)) should be (5)
+        t.valueAt(Array(0, 0, 3, 0)) should be (7)
+        t.valueAt(Array(0, 0, 0, 1)) should be (2)
+        t.valueAt(Array(0, 0, 1, 1)) should be (4)
+        t.valueAt(Array(0, 0, 2, 1)) should be (6)
+        t.valueAt(Array(0, 0, 3, 1)) should be (8)
+
+        t.valueAt(Array(4, 2, 0, 0)) should be (1)
+        t.valueAt(Array(3, 1, 1, 0)) should be (3)
+        t.valueAt(Array(2, 0, 2, 0)) should be (5)
+        t.valueAt(Array(1, 2, 3, 0)) should be (7)
+        t.valueAt(Array(0, 1, 0, 1)) should be (2)
+        t.valueAt(Array(4, 0, 1, 1)) should be (4)
+        t.valueAt(Array(3, 2, 2, 1)) should be (6)
+        t.valueAt(Array(2, 1, 3, 1)) should be (8)
+        t.valueAt(Array(1, 0, 0, 0)) should be (1)
+        t.valueAt(Array(0, 2, 3, 1)) should be (8)
+
+        unit()
+      })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
 }

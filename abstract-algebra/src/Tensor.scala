@@ -21,7 +21,7 @@ package bmaso.tensoralg.abstractions
  * computed as the product of the magntiude array.
  **/
 abstract class Tensor {
-  def magnitude: Array[Int]
+  def magnitude: Array[Long]
   def order = magnitude.length
-  val elementSize: Int = if (magnitude.isEmpty) 0 else magnitude.reduce(_ * _)
+  val elementSize: Long = if (magnitude.isEmpty) 0 else magnitude.reduce(_ * _)
 }
