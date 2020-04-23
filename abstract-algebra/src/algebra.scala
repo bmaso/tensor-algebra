@@ -17,7 +17,7 @@ trait TensorAlgebra {
    * * ***reduce* expressions
    **/
   trait TensorExprOp[T]
-  case class Translate(tensor: this.Tensor, dimensions: Array[Dimension], offsets: Array[Long]) extends this.TensorExprOp[this.Tensor]
+  case class Translate(tensor: this.Tensor, offsets: Array[Long]) extends this.TensorExprOp[this.Tensor]
   case class Broadcast(tensor: this.Tensor, baseMagnitude: Array[Long]) extends this.TensorExprOp[this.Tensor]
   case class Reshape(tensor: this.Tensor, reshapedMagnitude: Array[Long], sourceDimensionSequencing: Array[Dimension], targetDimensionSequencing: Array[Dimension]) extends this.TensorExprOp[this.Tensor]
   case class Split(tensor: this.Tensor, splitDimensions: Array[Dimension], splitStepping: Array[Long]) extends this.TensorExprOp[Array[this.Tensor]]
@@ -25,7 +25,7 @@ trait TensorAlgebra {
 
   type TensorExpr[Eff] = Free[TensorExprOp, Eff]
 
-  def translate(tensor: this.Tensor, dimensions: Array[Dimension], offsets: Array[Long]): this.TensorExpr[this.Tensor] = Free.liftF(Translate(tensor, dimensions, offsets))
+  def translate(tensor: this.Tensor, offsets: Array[Long]): this.TensorExpr[this.Tensor] = Free.liftF(Translate(tensor, offsets))
   def broadcast(tensor: this.Tensor, baseMagnitude: Array[Long]): this.TensorExpr[this.Tensor] = Free.liftF(Broadcast(tensor, baseMagnitude))
   def reshape(tensor: this.Tensor, reshapedMagnitude: Array[Long], sourceDimensionSequencing: Array[Dimension] = NaturalDimensionSequencing, targetDimensionSequencing: Array[Dimension] = NaturalDimensionSequencing): this.TensorExpr[this.Tensor] = Free.liftF(Reshape(tensor, reshapedMagnitude, sourceDimensionSequencing, targetDimensionSequencing))
   def split(tensor: this.Tensor, splitDimensions: Array[Dimension], splitStepping: Array[Long] = UnitaryStepping): this.TensorExpr[Array[this.Tensor]] = Free.liftF(Split(tensor, splitDimensions, splitStepping))

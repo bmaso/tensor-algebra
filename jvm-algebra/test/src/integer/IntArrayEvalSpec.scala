@@ -29,14 +29,14 @@ class IntArrayEvalSpec extends FlatSpec {
     outputArray should be (inputArray)
   }
 
-  ignore /*"An eval of ranslating 3x3 array (1, 1)"*/ should "yield shifted elements backfilled with 0s" in {
+  "An eval of translating 3x3 array (1, 1)" should "yield shifted elements backfilled with 0s" in {
     import IntTensorAlgebra._
 
     val inputArray = (1 to 9) toArray
     val outputArray = Array.fill[Int](9)(0)
 
     val expr = tensorFromArray(inputArray, Array(3, 3))
-      .flatMap(translate(_, Array(_X, _Y), Array(1, 1)))
+      .flatMap(translate(_, Array(1, 1)))
       .flatMap(copyTensorElementsToArray(_, outputArray))
 
     val interp = IdInterpreter

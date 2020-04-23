@@ -31,3 +31,17 @@ case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Int], o
     arr(idx + offset)
   }
 }
+
+case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
+    extends IntTensor {
+  override def magnitude = tensor.magnitude
+  override def valueAt(index: Array[Int]): Int = {
+    val translatedIndex = Array.copyAs[Int](index, index.length)
+    var oob = false
+    for(d <- 0 to order - 1) {
+      translatedIndex(d) -= offsets(d).toInt
+      if(translatedIndex(d) < 0 || translatedIndex(d) >= magnitude(d)) oob = true
+    }
+    if(oob) 0 else tensor.valueAt(Array.copyAs[Int](translatedIndex, translatedIndex.length))
+  }
+}

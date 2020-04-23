@@ -18,7 +18,14 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
         Array.copy(array, offset, targetArray, targetOffset, length)
         tensor
 
-      case t: IntTensor => ???
+      case t: IntTensor =>
+        for(idx <- 0 to t.elementSize - 1) {
+          targetArray(idx + targetOffset) = t.valueAt1D(idx)
+        }
+        t
     }
+
+    case Translate(tensor: IntTensor, offsets: Array[Long]) =>
+      TranslateTensor(tensor: IntTensor, offsets: Array[Long])
   }
 }
