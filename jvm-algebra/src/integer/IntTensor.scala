@@ -36,9 +36,29 @@ case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], 
   }
 }
 
+/**
+ * Represents a tensor "shifted" in one or more dimensions. Nagative or
+ * positive offsets cause the source tensor to be "truncated".
+ **/
 case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
     extends IntTensor {
-  override def magnitude = tensor.magnitude
+  /*
+   * A couple odd cases to consider: offsets is longer than source magnitude,
+   * offsets is shorter than source magnitude. The expected case is that
+   * offsets is equal to magnitude. This code correctly handles all three cases:
+   * * When offsets is longer, we want new magnitude to match and be 1 in additionally-
+   *   introduced dimensions
+   * * When offsets is shorter, we want to assume offsetvaue is 0 in the dimensions
+   *   not referenced.
+   * * When offsets are the same, we add offset to base magnitude.
+   */
+  override lazy val magnitude = {
+    val offs = Array.fill[Long](max(tensor.order, offsets.length))(0)
+    Array.copy(offsets, 0, offs, 0, offsets.length)
+    val mag = offs.map(_ + 1)
+    Array.copy(tensor.magnitude, 0, mag, 0, tensor.magnitude.length)
+    mag
+  }
   override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
     val translatedIndex = Array.tabulate[Long](order)((n: Int) => index(startingAt + n))
     var oob = false
