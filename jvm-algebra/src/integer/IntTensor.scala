@@ -63,7 +63,7 @@ case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
     val translatedIndex = Array.tabulate[Long](order)((n: Int) => index(startingAt + n))
     var oob = false
     for(d <- 0 to order - 1) {
-      translatedIndex(d) -= offsets(d).toInt
+      translatedIndex(d) -= (if (d >= offsets.length) 0 else (offsets(d).toInt))
       if(translatedIndex(d) < 0 || translatedIndex(d) >= magnitude(d)) oob = true
     }
     if(oob) 0 else tensor.valueAt(Array.copyAs[Long](translatedIndex, translatedIndex.length))
