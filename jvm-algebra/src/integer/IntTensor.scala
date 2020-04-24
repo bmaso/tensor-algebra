@@ -57,9 +57,14 @@ case class BroadcastTensor(tensor: IntTensor, baseMagnitude: Array[Long])
 
 case class SliceTensor(tensor: IntTensor, sliceRange: Array[(Long, Long)])
     extends IntTensor {
-  override lazy val magnitude: Array[Long] = sliceRange.map({ case (_, len) => len})
+  override lazy val magnitude: Array[Long] =
+    sliceRange
+      .map({ case (_, len) => len})
+      .reverse.dropWhile(_ == 1) //...drop all final dimensions with magnitude 1...
+      .reverse
   override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
-    val shiftedIndex = Array.copyOf(index, index.length)
+    val shiftedIndex = Array.fill[Long](tensor.order)(0)
+    Array.copy(index, 0, shiftedIndex, 0, index.length)
     for(ii <- 0 to (shiftedIndex.length - 1)) {
       shiftedIndex(ii) += sliceRange(ii)._1
     }
