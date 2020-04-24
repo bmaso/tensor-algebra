@@ -53,4 +53,14 @@ class IntArrayTensorSpec extends FlatSpec {
       IntArrayTensor((1 to 100) toArray, Array(5, 25), 0)
     }
   }
+
+  "a tensor" should "ignore additional unitary values in index passed to valueAt" in {
+    val t = IntArrayTensor((0 to 63) toArray, Array(4, 4, 4), 0)
+
+    t.valueAt(Array(0, 0, 0)) should be (0)
+    t.valueAt(Array(0, 0, 0, 0, 0, 0)) should be (0)
+
+    t.valueAt(Array(1, 1, 1)) should be (21)
+    t.valueAt(Array(1, 1, 1, 0, 0, 0)) should be (21)
+  }
 }
