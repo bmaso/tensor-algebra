@@ -89,4 +89,28 @@ class IntArrayEvalSpec extends FlatSpec {
 
     succeed
   }
+
+  "Eval of slicing a 4x4x4 tensor" should "produce tensor with expected magnitude, order, elementSize and element values" in {
+    import IntTensorAlgebra._
+
+    val inputArray = (0 to 63) toArray
+    val expr = tensorFromArray(inputArray, Array(4, 4, 4))
+      .flatMap(slice(_, Array((1, 2), (1, 2), (1, 2))))
+      .flatMap({tensor =>
+        tensor.magnitude should be (Array(2, 2, 2))
+        tensor.order should be (3)
+        tensor.elementSize should be (8)
+
+        tensor.valueAt(Array(0, 0, 0)) should be (21)
+        tensor.valueAt(Array(1, 0, 1)) should be (38)
+        tensor.valueAt(Array(0, 1, 0)) should be (25)
+
+        unit()
+      })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
 }

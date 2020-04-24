@@ -18,13 +18,6 @@ sealed trait IntTensor extends abstract_Tensor {
   }
 }
 
-/**
- * The JVM tensor implementation stores tensor elements as 1-D arrays of Int
- * values.
- *
- * ***IMPORTANT: A practical limitation is that `elementSize` must be `<= Int.MaxValue`,
- * which is a limitation on array sizes in the JVM.***
- **/
 case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], offset: Int)
     extends IntTensor {
   if(arr.length - offset < this.elementSize) throw new IllegalArgumentException("Backing array size is too small for elementSize")
@@ -60,4 +53,16 @@ case class BroadcastTensor(tensor: IntTensor, baseMagnitude: Array[Long])
   override lazy val magnitude: Array[Long] = (baseMagnitude.toList :++ tensor.magnitude.toList) toArray
   override def valueAt(index: Array[Long], startingAt: Int = 0): Int =
     tensor.valueAt(index, startingAt + baseMagnitude.length)
+}
+
+case class SliceTensor(tensor: IntTensor, sliceRange: Array[(Long, Long)])
+    extends IntTensor {
+  override lazy val magnitude: Array[Long] = sliceRange.map({ case (_, len) => len})
+  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+    val shiftedIndex = Array.copyOf(index, index.length)
+    for(ii <- 0 to (shiftedIndex.length - 1)) {
+      shiftedIndex(ii) += sliceRange(ii)._1
+    }
+    tensor.valueAt(shiftedIndex)
+  }
 }

@@ -11,6 +11,7 @@ trait IntTensorAlgebra extends abstract_TensorAlgebra {
 
    def tensorFromArray(arr: Array[Int], magnitude: Array[Long], offset: Int = 0): this.TensorExpr[this.Tensor] = Free.liftF(TensorFromArray(arr, magnitude, offset))
    def copyTensorElementsToArray(tensor: this.Tensor, arr: Array[Int], offset: Int = 0): this.TensorExpr[this.Tensor] = Free.liftF(CopyTensorElementsToArray(tensor, arr, offset))
+
 }
 
 object IntTensorAlgebra extends IntTensorAlgebra

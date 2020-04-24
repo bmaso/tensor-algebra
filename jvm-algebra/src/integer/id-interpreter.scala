@@ -1,10 +1,17 @@
 package bmaso.tensoralg.jvm.integer
 
+import scala.language.postfixOps
+
 import cats.{~>, Id}
 import cats.implicits._
 
 import IntTensorAlgebra._
 
+/**
+ * Note: split operation evaluator assumes split step evenly divides
+ * magnitude in the same dimension of original tensor. Code constructing the
+ * Split operation needs to assert this assumption.
+ **/
 object IdInterpreter extends (TensorExprOp ~> Id) {
 
   def eval[A](expr: TensorExpr[A]): Id[A] = expr.foldMap(this)
@@ -31,6 +38,9 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
     case Broadcast(tensor: IntTensor, baseMagnitude: Array[Long]) =>
       BroadcastTensor(tensor, baseMagnitude)
 
+    case Slice(tensor: IntTensor, sliceRange: Array[(Long, Long)]) =>
+      SliceTensor(tensor, sliceRange)
+      
     case IntTensorAlgebra.Unit => ()
   }
 }
