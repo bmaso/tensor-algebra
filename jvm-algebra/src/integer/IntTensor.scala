@@ -85,11 +85,6 @@ case class BroadcastTensor(tensor: IntTensor, baseMagnitude: Array[Long])
  * Describes a tensor which is a "slice" of the original. The `sliceRange`
  * must provide values for all dimensions of the original tensor. The resultant
  * magnitude array is reduced in size to remove trailing "1" magnitudes.
- *
- * Note that there is an  implicit assumption that the original tensor magnitude
- * and the `slicerange` length match, and that the slice range is not greater than
- * the original tensor's magnitude in any dimension. These assumtions should be
- * asserted prior to construction.
  **/
 case class SliceTensor(tensor: IntTensor, sliceRange: Array[(Long, Long)])
     extends IntTensor {
@@ -109,16 +104,30 @@ case class SliceTensor(tensor: IntTensor, sliceRange: Array[(Long, Long)])
 }
 
 /**
+ * Describes a tensor the is a reindexing of the elements of another tensor.
+ * The dimensionality and magnitude of this tensor may be different than the
+ * original. The `elementSize` must be the same as the source tensor.
+ **/
+case class ReshapeTensor(tensor: IntTensor, override val magnitude: Array[Long])
+    extends IntTensor {
+   override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+     var idx = 0L
+     var multiplier = 1L
+     for(ii <- startingAt to (index.length - 1)) {
+       idx += index(ii) * multiplier
+       multiplier *= (if (index(ii) == 0 && (ii - startingAt) >= magnitude.length) 1L else magnitude(ii - startingAt))
+     }
+     tensor.valueAt1D(idx)
+   }
+}
+
+/**
  * Describes a tensor that made from the "stacking" of one or more source tensors
  * in the `joiningDimension`. The source tensors may have non-unitary size in the
  * joining dimension. Note that if the source tensors definitely have unitary
  * size in the joining dimension, then the `StackTensor` is a more efficient
  * implementation for joining -- both for in-memory size and for element value
  * access.
- *
- * Note there is an assumption, which should be asserted prior to construction of an
- * instance: that the magnitudes of the constituent tensors are equal in all but
- * the joining dimension.
  **/
 case class JoinTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
     extends IntTensor {

@@ -41,7 +41,6 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
 
     case Slice(tensor: IntTensor, sliceRange: Array[(Long, Long)]) =>
       //...TODO: ensure slice range is not outside source tensor's bounds...
-
       SliceTensor(tensor, sliceRange)
 
     case Join(tensors: Array[tensor], joiningDimension: Dimension) =>

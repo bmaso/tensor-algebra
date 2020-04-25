@@ -113,4 +113,35 @@ class IntArrayEvalSpec extends FlatSpec {
 
     succeed
   }
+
+  "Taking a slice outside source magnitude" should "not be allowed" in {
+    import IntTensorAlgebra._
+
+    intercept[IllegalArgumentException] {
+      val expr = tensorFromArray((0 to 63) toArray, Array(4, 4, 4))
+        .flatMap(slice(_, Array((1, 2), (1, 5), (1, 2))))
+
+      val interp = IdInterpreter
+      val _ = interp.eval(expr)
+
+      succeed
+    }
+  }
+
+  "Specifying (0, 1) range for higher dimensions than source order" should "not cause a problem" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 63) toArray, Array(4, 4, 4))
+      .flatMap(slice(_, Array((1, 2), (1, 2), (1, 2), (0, 1), (0, 1), (0, 1))))
+      .flatMap({ t =>
+        t.order should be (3)
+        t.elementSize should be (8)
+
+        unit()
+      })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+  }
+
 }
