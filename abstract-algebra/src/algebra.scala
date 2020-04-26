@@ -84,10 +84,25 @@ trait TensorAlgebra {
 
   type TensorExpr[Eff] = Free[TensorExprOp, Eff]
 
+  /**
+   * Construct a tensor with the same magnitude as the original, but with values
+   * tanslated in zero or more dimensions. Element values translated to indexes
+   * outside original magnitude will be truncated. Resultant tensor will be "backfilled"
+   * with zero values for elements that don't have a corresponding value in original
+   * tensor.
+   **/
   def translate(tensor: this.Tensor, offsets: Array[Long]): this.TensorExpr[this.Tensor] =
     //...drop trailing zero offsets for efficiency...
     Free.liftF(Translate(tensor, offsets.reverse.dropWhile(_ == 0).reverse))
 
+  /**
+   * Construct a tensor of higher dimensionality that the original by duplication
+   * in zero or more dimensions.
+   *
+   * Note that the dual operation would be to remove lower dimension(s) of magnitude
+   * 1. For example, turning a 1x1x3x3 tensor into a 3x3 tensor. This can be
+   * accomplished using the `pivot` operation.
+   **/
   def broadcast(tensor: this.Tensor, baseMagnitude: Array[Long]): this.TensorExpr[this.Tensor] = {
     if(!baseMagnitude.map(_ > 0).fold(true)(_ && _)) throw new IllegalArgumentException("Base magntiude includes illegal values; each dimension must be > 0")
 
@@ -114,15 +129,23 @@ trait TensorAlgebra {
   def join(tensors: Array[this.Tensor], joiningDimension: Dimension): this.TensorExpr[this.Tensor] = Free.liftF(Join(tensors, joiningDimension))
 
   /**
-   * Constructs a tensor by reversing the elements in a specific dimension. The same
-   * could be accomplished by slicing unitary width tensors in a specific dimension
-   * and re-assembling with `join`. This is a much simpler and more efficient way
-   * to do this common operation.
+   * Constructs a tensor by reversing the elements in a specific dimension.
+   *
+   * "Rotating" a tensor about one or more dimensions can be accomplished by
+   * applying different sequences of `reverse` and `pivot`.
+   *
+   * Note that the same could be accomplished by slicing unitary width tensors in
+   * a specific dimension and re-assembling with `join` in opposite order. Defining
+   * `reverse` as a basic operation makes this common operation much easier to
+   * implement efficiently by initerpreters.
    **/
   def reverse(tensor: this.Tensor, dimension: Dimension): this.TensorExpr[this.Tensor] = ???
 
   /**
-   * Pivots a tensor by exchanging 2 dimensions
+   * Pivots a tensor by exchanging 2 dimensions.
+   *
+   * "Rotating" a tensor about one or more dimensions can be accomplished by
+   * applying different sequences of `reverse` and `pivot`.
    **/
   def pivot(tensor: this.Tensor, dim1: Dimension, dim2: Dimension): this.TensorExpr[this.Tensor] = ???
 
@@ -135,6 +158,10 @@ trait TensorAlgebra {
    **/
   //def morph(tensor: this.Tensor, subtensorDimensions: Array[Dimension], morph_f: this.MorphFunction): TensorExpr[this.Tensor] = ???
 
+  /**
+   * Provides a way for an expression to result in "nothing", relying completely
+   * on interpreter-specific operation side-effects.
+   **/
   def unit(): this.TensorExpr[Unit] = Free.liftF(this.Unit)
 
   // TBD: The following is saved code to be used to implement split, a function
