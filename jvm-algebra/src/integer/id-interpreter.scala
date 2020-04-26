@@ -40,8 +40,10 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
       BroadcastTensor(tensor, baseMagnitude)
 
     case Slice(tensor: IntTensor, sliceRange: Array[(Long, Long)]) =>
-      //...TODO: ensure slice range is not outside source tensor's bounds...
       SliceTensor(tensor, sliceRange)
+
+    case Reshape(tensor: Tensor, reshapedMagnitude: Array[Long]) =>
+      ReshapeTensor(tensor, reshapedMagnitude)
 
     case Join(tensors: Array[tensor], joiningDimension: Dimension) =>
       ???

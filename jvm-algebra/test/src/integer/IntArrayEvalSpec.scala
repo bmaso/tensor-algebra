@@ -128,7 +128,7 @@ class IntArrayEvalSpec extends FlatSpec {
     }
   }
 
-  "Specifying (0, 1) range for higher dimensions than source order" should "not cause a problem" in {
+  "Specifying (0, 1) range for higher dimensions than source order in a slice" should "not cause a problem" in {
     import IntTensorAlgebra._
 
     val expr = tensorFromArray((0 to 63) toArray, Array(4, 4, 4))
@@ -144,4 +144,56 @@ class IntArrayEvalSpec extends FlatSpec {
     val _ = interp.eval(expr)
   }
 
+  "Reshaping a tensor" should "yield a tensor with expected magnitude, roder, elementSize, and element values" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 59) toArray, Array(10, 2, 3))
+      .flatMap(reshape(_, Array(3, 4, 5)))
+      .flatMap({ t =>
+        t.magnitude should be (Array(3, 4, 5))
+        t.order should be (3)
+        t.elementSize should be (60)
+
+        //...choose a few different values to assute reshaped indexes give
+        //   expected values...
+        t.valueAt(Array(0, 0, 0)) should be (0)
+        t.valueAt(Array(2, 2, 1)) should be (20)
+        t.valueAt(Array(0, 1, 4)) should be (51)
+        t.valueAt(Array(1, 3, 2)) should be (34)
+        t.valueAt(Array(2, 3, 4)) should be (59)
+
+        unit()
+      })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+  }
+
+  "Reshaping a tensor with illegal magnitude values" should "not be allowed" in {
+    import IntTensorAlgebra._
+
+    intercept[IllegalArgumentException] {
+      val expr = tensorFromArray((0 to 63) toArray, Array(4, 4, 4))
+        .flatMap(reshape(_, Array(16, 0, 4)))
+
+      val interp = IdInterpreter
+      val _ = interp.eval(expr)
+
+      succeed
+    }
+  }
+
+  "Reshaping a tensor with different elementSize" should "not be allowed" in {
+    import IntTensorAlgebra._
+
+    intercept[IllegalArgumentException] {
+      val expr = tensorFromArray((0 to 63) toArray, Array(4, 4, 4))
+        .flatMap(reshape(_, Array(5, 5, 3)))
+
+      val interp = IdInterpreter
+      val _ = interp.eval(expr)
+
+      succeed
+    }
+  }
 }

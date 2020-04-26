@@ -97,8 +97,12 @@ trait TensorAlgebra {
       Free.liftF(Broadcast(tensor, baseMagnitude))
   }
 
-  // TODO: ensure reshaped elementSize is same as original; ensure reshaped magnitude values are non-negative and non-zero; ensure dimension values are valid dimensions (non-zero, non-negative)
-  def reshape(tensor: this.Tensor, reshapedMagnitude: Array[Long]): this.TensorExpr[this.Tensor] = Free.liftF(Reshape(tensor, reshapedMagnitude))
+  def reshape(tensor: this.Tensor, reshapedMagnitude: Array[Long]): this.TensorExpr[this.Tensor] = {
+    if(!reshapedMagnitude.map(_ >= 1).fold(true)(_ && _)) throw new IllegalArgumentException("Reshaped magnitude includes illegal values; all arities must be >= 1")
+    if(tensor.elementSize != reshapedMagnitude.fold(1L)(_ * _)) throw new IllegalArgumentException("Reshaped tensor elementSize must equal source elementSize")
+
+    Free.liftF(Reshape(tensor, reshapedMagnitude))
+  }
 
   def slice(tensor: this.Tensor, sliceRange: Array[(Long, Long)]): this.TensorExpr[this.Tensor] = {
     if(!sliceRange.drop(tensor.order).map({ case (f, l) => f == 0 && l == 1}).fold(true)(_ && _)) throw new IllegalArgumentException("Slice range implies higher order than source tensor")
@@ -129,7 +133,7 @@ trait TensorAlgebra {
    * Note that the interpreter will pick the sequencing and parallelism for
    * invoking the morphing function on each of the subtensors.
    **/
-  def morph(tensor: this.Tensor, subtensorDimensions: Array[Dimension], morph_f: this.MorphFunction): TensorExpr[this.Tensor] = ???
+  //def morph(tensor: this.Tensor, subtensorDimensions: Array[Dimension], morph_f: this.MorphFunction): TensorExpr[this.Tensor] = ???
 
   def unit(): this.TensorExpr[Unit] = Free.liftF(this.Unit)
 
