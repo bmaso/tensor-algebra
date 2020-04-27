@@ -29,6 +29,8 @@ case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], 
   if(this.elementSize >= Int.MaxValue) throw new IllegalArgumentException("Magnitude is too large for this tensor implementation; elementSize must be < Int.MaxValue")
 
   override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+    for(ii <- startingAt to index.length - 1) if(index(ii) < 0 || (index(ii) > 0 && ((ii - startingAt) >= magnitude.length || index(ii) >= magnitude(ii - startingAt))))
+      throw new IllegalArgumentException("Index value is out of range")
     var idx = 0L
     var multiplier = 1L
     for(ii <- startingAt to (index.length - 1)) {
@@ -180,7 +182,11 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
     extendedTensorMags(0)(joiningDimension) = tensors.length
     extendedTensorMags(0)
   }
-  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = ???
+  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+    val idx = Array.copyAs[Long](index, index.length)
+    idx(joiningDimension + startingAt) = 0
+    tensors(index((joiningDimension + startingAt).toInt).toInt).valueAt(idx, startingAt)
+  }
 }
 
 /**

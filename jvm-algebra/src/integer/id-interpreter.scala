@@ -46,7 +46,8 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
       ReshapeTensor(tensor, reshapedMagnitude)
 
     case Join(tensors: Array[tensor], joiningDimension: Dimension) =>
-      ???
+      StackTensor(tensors, joiningDimension)
+
       //...use a StackTensor to represent joining if the source tensors are unitary
       //   in the join dimension -- StackTensor is much more efficient in space and
       //   access time compared to JoinTensor because we know join dimension is unitary...

@@ -63,4 +63,18 @@ class IntArrayTensorSpec extends FlatSpec {
     t.valueAt(Array(1, 1, 1)) should be (21)
     t.valueAt(Array(1, 1, 1, 0, 0, 0)) should be (21)
   }
+
+  "Accessing an element with an index out of range" should "not be allowed" in {
+    val t = IntArrayTensor((0 to 63) toArray, Array(4, 4, 4), 0)
+    intercept[IllegalArgumentException] {
+      t.valueAt(Array(0, 5, 0))
+    }
+  }
+
+  "Accessing an element with an index out of range in undeclared dimension" should "not be allowed" in {
+    val t = IntArrayTensor((0 to 63) toArray, Array(4, 4, 4), 0)
+    intercept[IllegalArgumentException] {
+      t.valueAt(Array(0, 0, 0, 1))
+    }
+  }
 }
