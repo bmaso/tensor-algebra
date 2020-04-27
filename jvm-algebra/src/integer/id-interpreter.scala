@@ -47,16 +47,19 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
 
     case Join(tensors: Array[tensor], joiningDimension: Dimension) =>
       ???
-      //...TODO: ensure source tensors are of same size in all but the joining dimension...
-
       //...use a StackTensor to represent joining if the source tensors are unitary
-      //   in the join dimension -- this is much more efficient in space and
-      //   access time...
+      //   in the join dimension -- StackTensor is much more efficient in space and
+      //   access time compared to JoinTensor because we know join dimension is unitary...
 
 
-      //...when source tensors are not unitary in join dimension, then use JoinTensor,
-      //   which has the added capability to stack tensors of uneven size in the
-      //   join dimension...
+      //...when source tensors are not unitary in join dimension, then use JoinTensor.
+      //   JoinTensor has the added capability to stack tensors of uneven size in the
+      //   join dimension, but is much less efficient in space and element value
+      //   access time compared to StackTensor...
+
+    case Reverse(tensor: IntTensor, dimension: Dimension) => ???
+
+    case Pivot(tensor: IntTensor, dim1: Dimension, dim2: Dimension) => ???
 
     case IntTensorAlgebra.Unit => ()
   }

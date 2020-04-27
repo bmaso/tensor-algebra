@@ -20,6 +20,9 @@ sealed trait IntTensor extends abstract_Tensor {
   }
 }
 
+/**
+ * A tensor whose element values are taken from a backing array of values.
+ **/
 case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], offset: Int)
     extends IntTensor {
   if(arr.length - offset < this.elementSize) throw new IllegalArgumentException("Backing array size is too small for elementSize")
@@ -37,8 +40,9 @@ case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], 
 }
 
 /**
- * Represents a tensor "shifted" in one or more dimensions. Nagative or
- * positive offsets cause the source tensor to be "truncated".
+ * A tensor "shifted" in one or more dimensions. Negative or
+ * positive offsets cause the source tensor to be "truncated" in that
+ * dimension.
  **/
 case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
     extends IntTensor {
@@ -71,7 +75,7 @@ case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
 }
 
 /**
- * Describes a projection of an original tensor into higher dimensions by
+ * A projection of an original tensor into higher dimensions by
  * duplication.
  **/
 case class BroadcastTensor(tensor: IntTensor, baseMagnitude: Array[Long])
@@ -82,7 +86,7 @@ case class BroadcastTensor(tensor: IntTensor, baseMagnitude: Array[Long])
 }
 
 /**
- * Describes a tensor which is a "slice" of the original. The `sliceRange`
+ * A tensor which is a "slice" of the original. The `sliceRange`
  * must provide values for all dimensions of the original tensor. The resultant
  * magnitude array is reduced in size to remove trailing "1" magnitudes.
  **/
@@ -122,7 +126,7 @@ case class ReshapeTensor(tensor: IntTensor, override val magnitude: Array[Long])
 }
 
 /**
- * Describes a tensor that made from the "stacking" of one or more source tensors
+ * A tensor that made from the "stacking" of one or more source tensors
  * in the `joiningDimension`. The source tensors may have non-unitary size in the
  * joining dimension. Note that if the source tensors definitely have unitary
  * size in the joining dimension, then the `StackTensor` is a more efficient
@@ -153,7 +157,7 @@ case class JoinTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
 }
 
 /**
- * Describes a tensor that made from the "stacking" of one or more source tensors
+ * A tensor that made from the "stacking" of one or more source tensors
  * in the `joiningDimension`. The source tensors must have unitary size in the
  * joining dimension. The implementation utilizes this assumption, and is able
  * to be smaller in-memory as well as aster for element value access.
@@ -178,3 +182,44 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
   }
   override def valueAt(index: Array[Long], startingAt: Int = 0): Int = ???
 }
+
+/**
+ * A tensor constructed from a source tensor by reversing the indexes
+ * of element values along a single dimension.
+ **/
+ case class ReverseTensor(tensor: IntTensor, dimension: Dimension)
+     extends IntTensor {
+   override def magnitude = tensor.magnitude
+   override def valueAt(index: Array[Long], startingAt: Int = 0): Int =
+     if((index.length - startingAt) >= dimension) {
+       val idx = Array.copyAs[Long](index, index.length - startingAt)
+       idx(dimension) = tensor.magnitude(dimension) - 1 - idx(dimension)
+       tensor.valueAt(idx, 0)
+     } else
+       tensor.valueAt(index)
+ }
+
+ /**
+  * A tensor constructed from a source tensor by exchanging two dimensions.
+  **/
+ case class PivotTensor(tensor: IntTensor, dim1: Dimension, dim2: Dimension)
+     extends IntTensor {
+   override def magnitude = tensor.magnitude
+   override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+     val idx: Array[Long] = {
+       if(index.length - startingAt > dim1 && index.length - startingAt > dim2) {
+         val ret = Array.fill[Long](index.length - startingAt)(0)
+         Array.copy(index, startingAt, ret, 0, index.length - startingAt)
+         ret
+       } else {
+         val ret = Array.fill[Long](max(dim1, dim2) + 1)(0L)
+         Array.copy(index, startingAt, ret, 0, index.length)
+         ret
+       }
+     }
+     val swap = idx(dim1)
+     idx(dim1) = idx(dim2)
+     idx(dim2) = swap
+     tensor.valueAt(idx)
+   }
+ }

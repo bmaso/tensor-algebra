@@ -71,6 +71,18 @@ trait TensorAlgebra {
   // case class Morph(tensor: this.Tensor, grouping: Array[Dimension], morph_f: this.MorphFunction) extends this.TensorExprOp[this.Tensor]
 
   /**
+   * Represents the construction of a tensor from another by reversing index values
+   * along one dimension.
+   **/
+  case class Reverse(tensor: this.Tensor, dimension: Dimension) extends this.TensorExprOp[this.Tensor]
+
+  /**
+   * Represents the construction of one tensor from another by exchanging the
+   * indexes in exactly 2 dimensions.
+   **/
+  case class Pivot(tensor: this.Tensor, dim1: Dimension, dim2: Dimension) extends this.TensorExprOp[this.Tensor]
+
+  /**
    * Each algebra must define its own definition of the MorphFunction type. The Algebra should
    * also include a mechanism to construct or obtain instances. Algebras will also have to
    * provide some specific instances: `_SUM`, `_PRODUCT`
@@ -139,7 +151,10 @@ trait TensorAlgebra {
    * `reverse` as a basic operation makes this common operation much easier to
    * implement efficiently by initerpreters.
    **/
-  def reverse(tensor: this.Tensor, dimension: Dimension): this.TensorExpr[this.Tensor] = ???
+  def reverse(tensor: this.Tensor, dimension: Dimension): this.TensorExpr[this.Tensor] = {
+    if(dimension < 0) throw new IllegalArgumentException("Dimension value is not legal; dimension numbers must be >= 0")
+    Free.liftF(Reverse(tensor, dimension))
+  }
 
   /**
    * Pivots a tensor by exchanging 2 dimensions.
@@ -147,7 +162,10 @@ trait TensorAlgebra {
    * "Rotating" a tensor about one or more dimensions can be accomplished by
    * applying different sequences of `reverse` and `pivot`.
    **/
-  def pivot(tensor: this.Tensor, dim1: Dimension, dim2: Dimension): this.TensorExpr[this.Tensor] = ???
+  def pivot(tensor: this.Tensor, dim1: Dimension, dim2: Dimension): this.TensorExpr[this.Tensor] = {
+    if(dim1 < 0 || dim2 < 0) throw new IllegalArgumentException("One or both dimension value is illegal; dimension numbers must be >= 0")
+    Free.liftF(Pivot(tensor, dim1, dim2))
+  }
 
   /**
    * Construction of a tensor by application of a `morph_f` function on all
