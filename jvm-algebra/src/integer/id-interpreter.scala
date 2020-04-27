@@ -57,7 +57,8 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
       //   join dimension, but is much less efficient in space and element value
       //   access time compared to StackTensor...
 
-    case Reverse(tensor: IntTensor, dimension: Dimension) => ???
+    case Reverse(tensor: IntTensor, dimension: Dimension) =>
+      ReverseTensor(tensor, dimension)
 
     case Pivot(tensor: IntTensor, dim1: Dimension, dim2: Dimension) => ???
 

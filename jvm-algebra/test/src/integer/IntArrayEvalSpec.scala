@@ -196,4 +196,50 @@ class IntArrayEvalSpec extends FlatSpec {
       succeed
     }
   }
+
+  "Reversing a 3x2x3 tensor in the _Y direction" should "yield a tensor with expected magnitude, roder, elementSize, and element values" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 11) toArray, Array(2, 3, 2))
+      .flatMap(reverse(_. _Y))
+      .flatMap({t =>
+        t.magnitude should be (Array(2, 3, 2))
+        t.order should be (3)
+        t.elementSize should be (12)
+
+        t.valueAt(Array(0, 0, 0)) should be (4)
+        t.valueAt(Array(1, 0, 0)) should be (5)
+        t.valueAt(Array(0, 1, 0)) should be (2)
+        t.valueAt(Array(1, 1, 0)) should be (3)
+        t.valueAt(Array(0, 2, 0)) should be (0)
+        t.valueAt(Array(1, 2, 0)) should be (1)
+        t.valueAt(Array(0, 0, 1)) should be (10)
+        t.valueAt(Array(1, 0, 1)) should be (11)
+        t.valueAt(Array(0, 1, 1)) should be (8)
+        t.valueAt(Array(1, 1, 1)) should be (9)
+        t.valueAt(Array(0, 2, 1)) should be (6)
+        t.valueAt(Array(1, 2, 1)) should be (7)
+
+        unit()
+      })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
+
+  "Using a negative dimension value when trying to construct a revered tensor" should "not be allowed" in {
+    import IntTensorAlgebra._
+
+    intercept[IllegalArgumentException] {
+      val expr = tensorFromArray((0 to 11) toArray, Array(2, 3, 2))
+        .flatMap(reverse(_, -1.asInstanceOf[Dimension]))
+
+      val interp = IdInterpreter
+      val _ = interp.eval(expr)
+
+      succeed
+    }
+  }
 }
