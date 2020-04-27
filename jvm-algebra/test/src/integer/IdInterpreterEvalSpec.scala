@@ -144,7 +144,7 @@ class IntArrayEvalSpec extends FlatSpec {
     val _ = interp.eval(expr)
   }
 
-  "Reshaping a tensor" should "yield a tensor with expected magnitude, roder, elementSize, and element values" in {
+  "Reshaping a tensor" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
     import IntTensorAlgebra._
 
     val expr = tensorFromArray((0 to 59) toArray, Array(10, 2, 3))
@@ -197,7 +197,7 @@ class IntArrayEvalSpec extends FlatSpec {
     }
   }
 
-  "Reversing a 3x2x3 tensor in the _Y direction" should "yield a tensor with expected magnitude, roder, elementSize, and element values" in {
+  "Reversing a 3x2x3 tensor in the _Y direction" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
     import IntTensorAlgebra._
 
     val expr = tensorFromArray((0 to 11) toArray, Array(2, 3, 2))
@@ -243,7 +243,7 @@ class IntArrayEvalSpec extends FlatSpec {
     }
   }
 
-  "An (_X, _Y) pivot of a 3x2 tensor" should "yield a tensor with expected magnitude, roder, elementSize, and element values" in {
+  "An (_X, _Y) pivot of a 3x2 tensor" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
     import IntTensorAlgebra._
 
     val expr = tensorFromArray((0 to 5) toArray, Array(3, 2))
@@ -281,5 +281,34 @@ class IntArrayEvalSpec extends FlatSpec {
 
       succeed
     }
+  }
+
+  "Joining two 3x2 tensors in the _Z dimension" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 5) toArray, Array(3, 2))
+      .flatMap(t1 =>
+        tensorFromArray((6 to 11) to Array, Array(3, 2))
+          .flatMap(t2 => join(Array(t1, t2), _Z)))
+      .flatMap({t =>
+        t.magnitude should be (Array(3, 2, 2))
+        t.order should be (3)
+        t.elementSize should be (12)
+
+        t.valueAt(Array(0, 0, 0)) should be (0)
+        t.valueAt(Array(1, 0, 0)) should be (1)
+        t.valueAt(Array(2, 0, 0)) should be (2)
+        t.valueAt(Array(0, 1, 0)) should be (3)
+        t.valueAt(Array(1, 1, 0)) should be (4)
+        t.valueAt(Array(2, 1, 0)) should be (5)
+        t.valueAt(Array(0, 0, 1)) should be (6)
+        t.valueAt(Array(1, 0, 1)) should be (7)
+        t.valueAt(Array(2, 0, 1)) should be (8)
+        t.valueAt(Array(0, 1, 1)) should be (9)
+        t.valueAt(Array(1, 1, 1)) should be (10)
+        t.valueAt(Array(2, 1, 1)) should be (11)
+
+        unit()
+      })
   }
 }
