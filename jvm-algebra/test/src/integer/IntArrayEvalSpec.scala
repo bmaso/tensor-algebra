@@ -201,7 +201,7 @@ class IntArrayEvalSpec extends FlatSpec {
     import IntTensorAlgebra._
 
     val expr = tensorFromArray((0 to 11) toArray, Array(2, 3, 2))
-      .flatMap(reverse(_. _Y))
+      .flatMap(reverse(_, _Y))
       .flatMap({t =>
         t.magnitude should be (Array(2, 3, 2))
         t.order should be (3)
