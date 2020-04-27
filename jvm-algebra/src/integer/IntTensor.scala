@@ -18,6 +18,8 @@ sealed trait IntTensor extends abstract_Tensor {
     }
     valueAt(idx)
   }
+  def magnitudeIn(d: Dimension): Long =
+    if(d >= magnitude.length) 1L else magnitude(d)
 }
 
 /**
@@ -142,7 +144,7 @@ case class JoinTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
    * the joining dimension -- they may or may not be the same in the joining dimension.
    * Note the joining dimensions may be far later than the existing dimensions;
    * e.g., joining two 2x2 tensors in the _AA dimension. The following calculation
-   * generates a magnitude array of the correcct size, padded with 1's as necessary,
+   * generates a magnitude array of the correct size, padded with 1's as necessary,
    * whose value in the joining dimension is the sum of the backing tensors.
    */
   override lazy val magnitude = {
@@ -155,7 +157,24 @@ case class JoinTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
     extendedTensorMags(0)(joiningDimension) = extendedTensorMags.map(_.apply(joiningDimension)).sum
     extendedTensorMags(0)
   }
-  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = ???
+
+  /**
+   * For internal use when mapping indexes in the joining dimension to specific
+   * constituent tensors and their respective magnitudes in the joining dimension.
+   * stored in reverse order so that "dropWhile" on this list does not cause
+   * a new list to be constructed.
+   **/
+  lazy val joinDimensionOffsets =
+    tensors.map(_.magnitudeIn(joiningDimension)).scan(0L)(_ + _).init.toList.reverse
+
+  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+    val idx = Array.copyAs[Long](index, index.length)
+    val offsets = joinDimensionOffsets.dropWhile(_ > idx(joiningDimension + startingAt))
+    //^^^ note: joinDimensionOffsets is stored in reverse order so this dropWhile
+    //    does not create new list instance
+    idx(joiningDimension + startingAt) = idx(joiningDimension + startingAt) - offsets.head
+    tensors(offsets.length - 1).valueAt(idx, startingAt)
+  }
 }
 
 /**

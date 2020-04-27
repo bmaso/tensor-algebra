@@ -13,7 +13,7 @@ import bmaso.tensoralg.abstractions._
  * * tensorFromArray
  * * copyTensorElementsToArray
  **/
-class IntArrayEvalSpec extends FlatSpec {
+class IdInterpreterEvalSpec extends FlatSpec {
   "An eval of Copying array to array" should "transfer array contents unchanged" in {
     val magnitude = Array(5, 5)
     val inputArray = (0 to 24) toArray
@@ -283,14 +283,16 @@ class IntArrayEvalSpec extends FlatSpec {
     }
   }
 
-  "Joining two 3x2 tensors in the _Z dimension" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
+  "Joining two 3x2 tensors in the _Z dimension" should "yield a StackTensor with expected magnitude, order, elementSize, and element values" in {
     import IntTensorAlgebra._
 
     val expr = tensorFromArray((0 to 5) toArray, Array(3, 2))
       .flatMap(t1 =>
         tensorFromArray((6 to 11) to Array, Array(3, 2))
-          .flatMap(t2 => join(Array(t1, t2), _Z)))
+          .flatMap(t2 => join(_Z, t1, t2)))
       .flatMap({t =>
+        t.isInstanceOf[StackTensor] should be (true)
+
         t.magnitude should be (Array(3, 2, 2))
         t.order should be (3)
         t.elementSize should be (12)
@@ -307,6 +309,42 @@ class IntArrayEvalSpec extends FlatSpec {
         t.valueAt(Array(0, 1, 1)) should be (9)
         t.valueAt(Array(1, 1, 1)) should be (10)
         t.valueAt(Array(2, 1, 1)) should be (11)
+
+        unit()
+      })
+
+      val interp = IdInterpreter
+      val _ = interp.eval(expr)
+
+      succeed
+  }
+
+  "Joining two 3x2 tensors in the _Y dimension" should "yield a JoinTensor with expected magnitude, order, elementSize, and element values" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 5) toArray, Array(3, 2))
+      .flatMap(t1 =>
+        tensorFromArray((6 to 11) to Array, Array(3, 2))
+          .flatMap(t2 => join(_Y, t1, t2)))
+      .flatMap({t =>
+        t.isInstanceOf[JoinTensor] should be (true)
+
+        t.magnitude should be (Array(3, 4))
+        t.order should be (2)
+        t.elementSize should be (12)
+
+        t.valueAt(Array(0, 0)) should be (0)
+        t.valueAt(Array(1, 0)) should be (1)
+        t.valueAt(Array(2, 0)) should be (2)
+        t.valueAt(Array(0, 1)) should be (3)
+        t.valueAt(Array(1, 1)) should be (4)
+        t.valueAt(Array(2, 1)) should be (5)
+        t.valueAt(Array(0, 2)) should be (6)
+        t.valueAt(Array(1, 2)) should be (7)
+        t.valueAt(Array(2, 2)) should be (8)
+        t.valueAt(Array(0, 3)) should be (9)
+        t.valueAt(Array(1, 3)) should be (10)
+        t.valueAt(Array(2, 3)) should be (11)
 
         unit()
       })

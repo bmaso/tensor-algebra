@@ -57,7 +57,7 @@ trait TensorAlgebra {
    * As with all `TensorExprOp`, invarant assertions are not garuanteed to be performed.
    * Use function `join` to perform invariant checks.
    **/
-  case class Join(tensors: Array[this.Tensor], joiningDimension: Dimension) extends this.TensorExprOp[this.Tensor]
+  case class Join(tensors: List[this.Tensor], joiningDimension: Dimension) extends this.TensorExprOp[this.Tensor]
 
   /**
    * Represents the construction of a tensor by applying a `MorphFunction` to each of
@@ -137,8 +137,10 @@ trait TensorAlgebra {
     Free.liftF(Slice(tensor, sliceRange))
   }
 
-  // TODO: ensure source tensors are of same magnitude in all but the joining dimension; if joining dimension mag for all tensors is 1 use StackTensor, else use less efficient JoinTensor
-  def join(tensors: Array[this.Tensor], joiningDimension: Dimension): this.TensorExpr[this.Tensor] = Free.liftF(Join(tensors, joiningDimension))
+  def join(joiningDimension: Dimension, t1: this.Tensor, t2: this.Tensor*): this.TensorExpr[this.Tensor] = {
+    val tensors: List[this.Tensor] = List(t1) :++ t2.toList
+    Free.liftF(Join(tensors, joiningDimension))
+  }
 
   /**
    * Constructs a tensor by reversing the elements in a specific dimension.

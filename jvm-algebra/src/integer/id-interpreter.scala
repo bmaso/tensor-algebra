@@ -42,21 +42,22 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
     case Slice(tensor: IntTensor, sliceRange: Array[(Long, Long)]) =>
       SliceTensor(tensor, sliceRange)
 
-    case Reshape(tensor: Tensor, reshapedMagnitude: Array[Long]) =>
+    case Reshape(tensor: IntTensor, reshapedMagnitude: Array[Long]) =>
       ReshapeTensor(tensor, reshapedMagnitude)
 
-    case Join(tensors: Array[tensor], joiningDimension: Dimension) =>
-      StackTensor(tensors, joiningDimension)
-
+    case Join(tensors: List[IntTensor], joiningDimension) =>
       //...use a StackTensor to represent joining if the source tensors are unitary
       //   in the join dimension -- StackTensor is much more efficient in space and
       //   access time compared to JoinTensor because we know join dimension is unitary...
-
-
-      //...when source tensors are not unitary in join dimension, then use JoinTensor.
+      //...when source tensors are not all unitary in join dimension, then use JoinTensor.
       //   JoinTensor has the added capability to stack tensors of uneven size in the
-      //   join dimension, but is much less efficient in space and element value
+      //   join dimension, but is less efficient in space and element value
       //   access time compared to StackTensor...
+
+      if(!tensors.map(_.magnitudeIn(joiningDimension) > 1).fold(false)(_ || _))
+        StackTensor(tensors.toArray, joiningDimension)
+      else
+        JoinTensor(tensors.toArray, joiningDimension)
 
     case Reverse(tensor: IntTensor, dimension: Dimension) =>
       ReverseTensor(tensor, dimension)
