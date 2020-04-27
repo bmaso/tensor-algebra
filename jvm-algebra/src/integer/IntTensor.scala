@@ -204,22 +204,32 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
   **/
  case class PivotTensor(tensor: IntTensor, dim1: Dimension, dim2: Dimension)
      extends IntTensor {
-   override def magnitude = tensor.magnitude
+   override lazy val magnitude = {
+     val mag = Array.fill[Long](max(tensor.order, max(dim1, dim2) + 1))(1)
+     Array.copy(tensor.magnitude, 0, mag, 0, tensor.order)
+     val swap = mag(dim1)
+     mag(dim1) = mag(dim2)
+     mag(dim2) = swap
+     mag
+   }
    override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
-     val idx: Array[Long] = {
-       if(index.length - startingAt > dim1 && index.length - startingAt > dim2) {
-         val ret = Array.fill[Long](index.length - startingAt)(0)
-         Array.copy(index, startingAt, ret, 0, index.length - startingAt)
-         ret
-       } else {
-         val ret = Array.fill[Long](max(dim1, dim2) + 1)(0L)
-         Array.copy(index, startingAt, ret, 0, index.length)
-         ret
+     if(dim1 == dim2) tensor.valueAt(index)
+     else {
+       val idx: Array[Long] = {
+         if(index.length - startingAt > dim1 && index.length - startingAt > dim2) {
+           val ret = Array.fill[Long](index.length - startingAt)(0)
+           Array.copy(index, startingAt, ret, 0, index.length - startingAt)
+           ret
+         } else {
+           val ret = Array.fill[Long](max(dim1, dim2) + 1)(0L)
+           Array.copy(index, startingAt, ret, 0, index.length)
+           ret
+         }
        }
+       val swap = idx(dim1)
+       idx(dim1) = idx(dim2)
+       idx(dim2) = swap
+       tensor.valueAt(idx)
      }
-     val swap = idx(dim1)
-     idx(dim1) = idx(dim2)
-     idx(dim2) = swap
-     tensor.valueAt(idx)
    }
  }

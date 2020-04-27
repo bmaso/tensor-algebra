@@ -242,4 +242,44 @@ class IntArrayEvalSpec extends FlatSpec {
       succeed
     }
   }
+
+  "An (_X, _Y) pivot of a 3x2 tensor" should "yield a tensor with expected magnitude, roder, elementSize, and element values" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 5) toArray, Array(3, 2))
+      .flatMap(pivot(_, _X, _Y))
+      .flatMap({t =>
+        t.magnitude should be (Array(2, 3))
+        t.order should be (2)
+        t.elementSize should be (6)
+
+        t.valueAt(Array(0, 0)) should be (0)
+        t.valueAt(Array(1, 0)) should be (3)
+        t.valueAt(Array(0, 1)) should be (1)
+        t.valueAt(Array(1, 1)) should be (4)
+        t.valueAt(Array(0, 2)) should be (2)
+        t.valueAt(Array(1, 2)) should be (5)
+
+        unit()
+      })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
+
+  "Using an illegal dimension value when constructing a pivot" should "not be allowed" in {
+    import IntTensorAlgebra._
+
+    intercept[IllegalArgumentException] {
+      val expr = tensorFromArray((0 to 5) toArray, Array(3, 2, 2))
+        .flatMap(pivot(_, -1.asInstanceOf[Dimension], -1.asInstanceOf[Dimension]))
+
+      val interp = IdInterpreter
+      val _ = interp.eval(expr)
+
+      succeed
+    }
+  }
 }

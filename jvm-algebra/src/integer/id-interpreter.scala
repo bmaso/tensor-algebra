@@ -60,7 +60,8 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
     case Reverse(tensor: IntTensor, dimension: Dimension) =>
       ReverseTensor(tensor, dimension)
 
-    case Pivot(tensor: IntTensor, dim1: Dimension, dim2: Dimension) => ???
+    case Pivot(tensor: IntTensor, dim1: Dimension, dim2: Dimension) =>
+      PivotTensor(tensor, dim1, dim2)
 
     case IntTensorAlgebra.Unit => ()
   }
