@@ -41,6 +41,9 @@ case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], 
     }
     arr((idx + offset).toInt)
   }
+
+  def copySlice(tensor: IntTensor, sliceRange: Array[(Long, Long)]): Unit = ???
+  def setValueAt(v: Int, index: Array[Long]): Unit = ???
 }
 
 /**

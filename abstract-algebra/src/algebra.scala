@@ -9,6 +9,10 @@ import cats.free.Free
 trait TensorAlgebra {
   type Tensor <: bmaso.tensoralg.abstractions.Tensor
 
+  type MapFunction
+  type ReduceFunction
+  type TransformFunction
+
   /**
    * The tensor algebraic expressions which are common to all concrete tensor algebras.
    * Note what additional expression types must be added to concrete subtypes:
@@ -60,15 +64,38 @@ trait TensorAlgebra {
   case class Join(tensors: List[this.Tensor], joiningDimension: Dimension) extends this.TensorExprOp[this.Tensor]
 
   /**
-   * Represents the construction of a tensor by applying a `MorphFunction` to each of
-   * the constituent sub-tensors of a source tensor, and joining the results
-   * into a resultant tensor. The interpreter chooses the sequencing and parallelism
-   * of the application of the `MorphFunction`.
+   * Represents the construction of a tensor by 1:1 mapping of element values.
    *
-   * As with all `TensorExprOp`, invarant assertions are not garuanteed to be performed.
-   * Use function `morph` to perform invariant checks.
+   * @returns The resulting tensor has the exact same magnitude as the input
+   *     tensor.
    **/
-  // case class Morph(tensor: this.Tensor, grouping: Array[Dimension], morph_f: this.MorphFunction) extends this.TensorExprOp[this.Tensor]
+  case class Map(tensor: this.Tensor, map_f: this.MapFunction) extends this.TensorExprOp[this.Tensor]
+
+  /**
+   * Represents the construction of a tensor by reducing a source tensor in zero
+   * or more dimensions using a reducing function.
+   *
+   * @returns The resulting tensor is of order `tensor.order - reducedOrders`. The
+   *     magnitude or the resulting tensor will be equal to `tensor.magnitude.take(tensor.order - reducedOrders)`
+   * @param reduce_f The reducing function must accept tensors of magnitude
+   *     `tensor.magnitude.drop(tensor.order - reducedOrders)`
+   **/
+  case class Reduce(tensor: this.Tensor, reducedOrders: Int, reduce_f: this.ReduceFunction) extends this.TensorExprOp[this.Tensor]
+
+  /**
+   * Represents the construction of a tensor by map-reduce. Conceptually, individual
+   * slices of the source tensor are transformed via a transforming function,
+   * and the results are aggregated together into an aggregating tensor.
+   *
+   * @returns The resulting tensor is of magnitude `producedMagnitude`
+   *
+   * @param transform_f The transforming function must accept tensors of magnitude
+   *     `tensor.magnitude.drop(tensor.order - reducedOrders)`, and produce tensors
+   *     of magnitude `producedMagnitude`
+   * @param builder The tensor builder must generate "zero-valued" `AggregateTensor`
+   *     instances of magnitude `producedMagnitude`
+   **/
+  //case class Aggregate(tensor: this.Tensor, reducedOrders: Int, producedMagnitude: Array[Long], transform_f: this.TransformFunction, builder: this.AggregatingTensorBuilder) extends this.TensorExprOp[this.Tensor]
 
   /**
    * Represents the construction of a tensor from another by reversing index values
@@ -176,7 +203,7 @@ trait TensorAlgebra {
    * Note that the interpreter will pick the sequencing and parallelism for
    * invoking the morphing function on each of the subtensors.
    **/
-  //def morph(tensor: this.Tensor, subtensorDimensions: Array[Dimension], morph_f: this.MorphFunction): TensorExpr[this.Tensor] = ???
+  def _morph(tensor: this.Tensor, subtensorBaseDimensions: Array[Dimension], transformedSubtensorMagnitude: Array[Long], morph_f: this.MorphFunction): TensorExpr[this.Tensor] = ???
 
   /**
    * Provides a way for an expression to result in "nothing", relying completely
