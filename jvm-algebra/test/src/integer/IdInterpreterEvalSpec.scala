@@ -349,4 +349,30 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
   }
+
+  "Mapping a 2x3 tensors w/ mapping function (_ * 2)" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 5) toArray, Array(2, 3))
+        .flatMap(map(_)(_ * 2))
+        .flatMap({ t =>
+          t.magnitude should be (Array(2, 3))
+          t.order should be (2)
+          t.elementSize should be (6)
+
+          t.valueAt(Array(0, 0)) should be (0)
+          t.valueAt(Array(1, 0)) should be (2)
+          t.valueAt(Array(0, 1)) should be (4)
+          t.valueAt(Array(1, 1)) should be (6)
+          t.valueAt(Array(0, 2)) should be (8)
+          t.valueAt(Array(1, 2)) should be (10)
+
+          unit()
+        })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
 }

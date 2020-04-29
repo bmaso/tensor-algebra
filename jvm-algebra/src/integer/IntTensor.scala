@@ -7,7 +7,7 @@ import scala.math.max
 import bmaso.tensoralg.abstractions.{Tensor => abstract_Tensor, Dimension}
 
 sealed trait IntTensor extends abstract_Tensor {
-  def valueAt(index: Array[Long], startingAt: Int = 0): Int
+  def valueAt(index: Array[Long], startingAt: Long = 0): Int
   def valueAt1D(_1dIdx: Long): Int = {
     var __1dIdx = _1dIdx
     val idx = Array.fill[Long](order)(0)
@@ -30,14 +30,14 @@ case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], 
   if(arr.length - offset < this.elementSize) throw new IllegalArgumentException("Backing array size is too small for elementSize")
   if(this.elementSize >= Int.MaxValue) throw new IllegalArgumentException("Magnitude is too large for this tensor implementation; elementSize must be < Int.MaxValue")
 
-  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
-    for(ii <- startingAt to index.length - 1) if(index(ii) < 0 || (index(ii) > 0 && ((ii - startingAt) >= magnitude.length || index(ii) >= magnitude(ii - startingAt))))
+  override def valueAt(index: Array[Long], startingAt: Long = 0L): Int = {
+    for(ii <- startingAt.toInt to (index.length - 1)) if(index(ii) < 0L || (index(ii) > 0L && ((ii - startingAt.toInt) >= magnitude.length || index(ii) >= magnitude(ii - startingAt.toInt))))
       throw new IllegalArgumentException("Index value is out of range")
     var idx = 0L
     var multiplier = 1L
-    for(ii <- startingAt to (index.length - 1)) {
+    for(ii <- startingAt.toInt to (index.length - 1)) {
       idx += index(ii) * multiplier
-      multiplier *= (if (index(ii) == 0 && (ii - startingAt) >= magnitude.length) 1L else magnitude(ii - startingAt))
+      multiplier *= (if (index(ii) == 0 && (ii - startingAt.toInt) >= magnitude.length) 1L else magnitude(ii - startingAt.toInt))
     }
     arr((idx + offset).toInt)
   }
@@ -70,8 +70,8 @@ case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
     Array.copy(tensor.magnitude, 0, mag, 0, tensor.magnitude.length)
     mag
   }
-  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
-    val translatedIndex = Array.tabulate[Long](order)((n: Int) => index(startingAt + n))
+  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+    val translatedIndex = Array.tabulate[Long](order)((n: Int) => index(startingAt.toInt + n))
     var oob = false
     for(d <- 0 to order - 1) {
       translatedIndex(d) -= (if (d >= offsets.length) 0 else (offsets(d).toInt))
@@ -88,7 +88,7 @@ case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
 case class BroadcastTensor(tensor: IntTensor, baseMagnitude: Array[Long])
     extends IntTensor {
   override lazy val magnitude: Array[Long] = (baseMagnitude.toList :++ tensor.magnitude.toList) toArray
-  override def valueAt(index: Array[Long], startingAt: Int = 0): Int =
+  override def valueAt(index: Array[Long], startingAt: Long = 0): Int =
     tensor.valueAt(index, startingAt + baseMagnitude.length)
 }
 
@@ -104,7 +104,7 @@ case class SliceTensor(tensor: IntTensor, sliceRange: Array[(Long, Long)])
       .map({ case (_, len) => len})
       .reverse.dropWhile(_ == 1) //...drop all final dimensions with magnitude 1...
       .reverse
-  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
     val shiftedIndex = Array.fill[Long](tensor.order)(0)
     Array.copy(index, 0, shiftedIndex, 0, index.length)
     for(ii <- 0 to (shiftedIndex.length - 1)) {
@@ -121,12 +121,12 @@ case class SliceTensor(tensor: IntTensor, sliceRange: Array[(Long, Long)])
  **/
 case class ReshapeTensor(tensor: IntTensor, override val magnitude: Array[Long])
     extends IntTensor {
-   override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+   override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
      var idx = 0L
      var multiplier = 1L
-     for(ii <- startingAt to (index.length - 1)) {
+     for(ii <- startingAt.toInt to (index.length - 1)) {
        idx += index(ii) * multiplier
-       multiplier *= (if (index(ii) == 0 && (ii - startingAt) >= magnitude.length) 1L else magnitude(ii - startingAt))
+       multiplier *= (if (index(ii) == 0 && (ii - startingAt.toInt) >= magnitude.length) 1L else magnitude(ii - startingAt.toInt))
      }
      tensor.valueAt1D(idx)
    }
@@ -170,12 +170,12 @@ case class JoinTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
   lazy val joinDimensionOffsets =
     tensors.map(_.magnitudeIn(joiningDimension)).scan(0L)(_ + _).init.toList.reverse
 
-  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
     val idx = Array.copyAs[Long](index, index.length)
-    val offsets = joinDimensionOffsets.dropWhile(_ > idx(joiningDimension + startingAt))
+    val offsets = joinDimensionOffsets.dropWhile(_ > idx(joiningDimension + startingAt.toInt))
     //^^^ note: joinDimensionOffsets is stored in reverse order so this dropWhile
     //    does not create new list instance
-    idx(joiningDimension + startingAt) = idx(joiningDimension + startingAt) - offsets.head
+    idx(joiningDimension + startingAt.toInt) = idx(joiningDimension + startingAt.toInt) - offsets.head
     tensors(offsets.length - 1).valueAt(idx, startingAt)
   }
 }
@@ -204,9 +204,9 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
     extendedTensorMags(0)(joiningDimension) = tensors.length
     extendedTensorMags(0)
   }
-  override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
     val idx = Array.copyAs[Long](index, index.length)
-    idx(joiningDimension + startingAt) = 0
+    idx(joiningDimension + startingAt.toInt) = 0
     tensors(index((joiningDimension + startingAt).toInt).toInt).valueAt(idx, startingAt)
   }
 }
@@ -218,9 +218,9 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
  case class ReverseTensor(tensor: IntTensor, dimension: Dimension)
      extends IntTensor {
    override def magnitude = tensor.magnitude
-   override def valueAt(index: Array[Long], startingAt: Int = 0): Int =
+   override def valueAt(index: Array[Long], startingAt: Long = 0): Int =
      if((index.length - startingAt) >= dimension) {
-       val idx = Array.copyAs[Long](index, index.length - startingAt)
+       val idx = Array.copyAs[Long](index, index.length - startingAt.toInt)
        idx(dimension) = tensor.magnitude(dimension) - 1 - idx(dimension)
        tensor.valueAt(idx, 0)
      } else
@@ -240,17 +240,17 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
      mag(dim2) = swap
      mag
    }
-   override def valueAt(index: Array[Long], startingAt: Int = 0): Int = {
+   override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
      if(dim1 == dim2) tensor.valueAt(index)
      else {
        val idx: Array[Long] = {
          if(index.length - startingAt > dim1 && index.length - startingAt > dim2) {
-           val ret = Array.fill[Long](index.length - startingAt)(0)
-           Array.copy(index, startingAt, ret, 0, index.length - startingAt)
+           val ret = Array.fill[Long](index.length - startingAt.toInt)(0)
+           Array.copy(index, startingAt.toInt, ret, 0, index.length - startingAt.toInt)
            ret
          } else {
            val ret = Array.fill[Long](max(dim1, dim2) + 1)(0L)
-           Array.copy(index, startingAt, ret, 0, index.length)
+           Array.copy(index, startingAt.toInt, ret, 0, index.length)
            ret
          }
        }
@@ -260,4 +260,13 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
        tensor.valueAt(idx)
      }
    }
+ }
+
+ /**
+  * A tensor constructed by applying an (Int) => Int mapping from a source
+  * tensor's elements.
+  **/
+ case class MapTensor(tensor: IntTensor, f: (Int) => Int) extends IntTensor {
+   override def magnitude = tensor.magnitude
+   override def valueAt(index: Array[Long], startingAt: Long = 0): Int = f(tensor.valueAt(index, startingAt))
  }

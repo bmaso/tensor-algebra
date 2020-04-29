@@ -65,33 +65,8 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
     case Pivot(tensor: IntTensor, dim1: Dimension, dim2: Dimension) =>
       PivotTensor(tensor, dim1, dim2)
 
-    case Morph(tensor: IntTensor, subtensorDimensions: Array[Dimension], transformedSubtensorMagnitude: Array[Long], morph_f: MorphFunction) => morph_f match {
-      case arr_f: IntMorphToArrayFunction =>
-        @tailrec
-        def rec(dims: List[Dimension], ll: LazyList[Array[Long]]): LazyList[Array[Long]] = dims match {
-          case Nil => ll
-          case head :: rest =>
-            val ll1 = rec(rest, ll)
-            ll1.flatMap(subtensorIdx =>
-              LazyList.range[Long](0L, tensor.magnitude(head) - 1, 1L).map(i => i +: subtensorIdx))
-        }
-
-        val subtensorBaseIndexes = rec(subtensorDimensions, LazyList(Array[Long]()))
-
-        def baseIndexToSliceRange(baseIdx: Array[Long]): Array[(Long, Long)] = ???
-        def transformedSubtensorRangeForSliceRange(sliceRange: Array[(Long, Long)]): Array[(Long, Long)] = ???
-
-        val subtensorRanges = subtensorBaseIndexes.map(baseIndexToSliceRange)
-
-        for(range <- subtensorRanges) {
-          val subtensor = SliceTensor(tensor, range)
-          val transformedSubtensor = morph_f.apply(subtensor)
-          val transformedSubtensorRange = transformedSubtensorRangeForSliceRange(range)
-          arr_f.backingTensor.copySlice(transformedSubtensor, transformedSubtensorRange)
-        }
-
-        arr_f.backingTensor
-    }
+    case Map(tensor: IntTensor, map_f: IntMapFunction) =>
+      MapTensor(tensor, map_f.f)
 
     case IntTensorAlgebra.Unit => ()
   }

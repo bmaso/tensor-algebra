@@ -25,3 +25,7 @@ abstract class Tensor {
   def order = magnitude.length
   val elementSize: Long = if (magnitude.isEmpty) 0 else magnitude.reduce(_ * _)
 }
+
+trait Aggregating[T] {
+  def aggregate(t: T): this.type
+}

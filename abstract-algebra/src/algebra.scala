@@ -8,10 +8,22 @@ import cats.free.Free
  **/
 trait TensorAlgebra {
   type Tensor <: bmaso.tensoralg.abstractions.Tensor
+  // type AggregatingTensor <: this.Tensor with Aggregating[this.Tensor]
+  // trait AggregatingTensorBuilder {
+  //   def freshTensor(magnitude: Array[Long]): TensorAlgebra.this.AggregatingTensor
+  // }
+
+  /**
+   * Ambient object able to create a "fresh" aggregating tensor. The aggregating
+   * tensor should have a "zero" value, meaning that after it aggregates a tensor
+   * ***A***, then the element values for the resultant aggregate should be identical
+   * to the element values of ***A***.
+   **/
+  // val aggregatingTensorBuilder: AggregatingTensorBuilder
 
   type MapFunction
-  type ReduceFunction
-  type TransformFunction
+  // type ReduceFunction
+  // type TransformFunction
 
   /**
    * The tensor algebraic expressions which are common to all concrete tensor algebras.
@@ -80,7 +92,7 @@ trait TensorAlgebra {
    * @param reduce_f The reducing function must accept tensors of magnitude
    *     `tensor.magnitude.drop(tensor.order - reducedOrders)`
    **/
-  case class Reduce(tensor: this.Tensor, reducedOrders: Int, reduce_f: this.ReduceFunction) extends this.TensorExprOp[this.Tensor]
+  // case class Reduce(tensor: this.Tensor, reducedOrders: Int, reduce_f: this.ReduceFunction) extends this.TensorExprOp[this.Tensor]
 
   /**
    * Represents the construction of a tensor by map-reduce. Conceptually, individual
@@ -95,7 +107,7 @@ trait TensorAlgebra {
    * @param builder The tensor builder must generate "zero-valued" `AggregateTensor`
    *     instances of magnitude `producedMagnitude`
    **/
-  //case class Aggregate(tensor: this.Tensor, reducedOrders: Int, producedMagnitude: Array[Long], transform_f: this.TransformFunction, builder: this.AggregatingTensorBuilder) extends this.TensorExprOp[this.Tensor]
+  // case class Aggregate(tensor: this.Tensor, reducedOrders: Int, producedMagnitude: Array[Long], transform_f: this.TransformFunction) extends this.TensorExprOp[this.Tensor]
 
   /**
    * Represents the construction of a tensor from another by reversing index values
@@ -197,13 +209,38 @@ trait TensorAlgebra {
   }
 
   /**
-   * Construction of a tensor by application of a `morph_f` function on all
-   * subtensors projected from `subtensorDimension`. The resultant subtensors
-   * aare joined, also in `subtensorDimensions`, to form the resultant tensor.
-   * Note that the interpreter will pick the sequencing and parallelism for
-   * invoking the morphing function on each of the subtensors.
+   * Constructs a new tensor whose elements are a 1:1 mapping of the source
+   * tensor.
+   * @returns An expression that, when evaluated, yields a tensor with the exact
+   *     same magnitude as `tensor.magnitude`
    **/
-  def _morph(tensor: this.Tensor, subtensorBaseDimensions: Array[Dimension], transformedSubtensorMagnitude: Array[Long], morph_f: this.MorphFunction): TensorExpr[this.Tensor] = ???
+  def map(tensor: this.Tensor, map_f: this.MapFunction): this.TensorExpr[this.Tensor] =
+    Free.liftF(Map(tensor, map_f))
+
+  /**
+   * Constructs a new tensor whose elements are a reduction of slices that comprise
+   * the source tensor. The slices are defined by iteating over unitary width
+   * slices in the first `reduceOrders` dimensions.
+   *
+   * @returns An expression that, once evaluated, yields a tensor whose magnitude
+   *     is `tensor.magnitude.drop(reduceOrders)`
+   * @param reduce_f A reduction function that receives slices from the original
+   *     source tensor of magnitude `tensor.magnitude.take(reduceOrders)`, and which
+   *     yields a unitary value.
+   **/
+  // def reduce(tensor: this.Tensor, reduceOrders: Int, reduce_f: this.ReduceFunction): this.TensorExpr[this.Tensor] = ???
+
+  /**
+   * Constructs a new tensor built by aggregating transformed slices of the original
+   * source tensor.
+   *
+   * @returns The returned expression, whenn evaluated, yields a tensor of magnitude
+   *     `producedMagnitude`
+   * @param transform_f A tranform function that receives a tensor of magnitude
+   *     `tensor.magnitude.take(reduceOrders)`, and which yields a tensor of
+   *     magnitude `producedMagnitude`.
+   **/
+  // def aggregate(tensor: this.Tensor, reduceOrders: Int, produceMagnitude: Array[Long], transform_f: this.TransformFunction): this.TensorExpr[this.Tensor] = ???
 
   /**
    * Provides a way for an expression to result in "nothing", relying completely
