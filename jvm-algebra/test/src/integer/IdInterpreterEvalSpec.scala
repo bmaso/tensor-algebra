@@ -380,4 +380,38 @@ class IdInterpreterEvalSpec extends FlatSpec {
 
     succeed
   }
+
+  "Reducing a 6x5x4x3 tensor in 2 orders" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
+    import IntTensorAlgebra._
+
+    def sum(t: IntTensor): Int = (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum
+
+    val expr = tensorFromArray((0 to 359).map(_ => 1) toArray, Array(6, 5, 4, 3))
+        .flatMap(reduce(_, 2)(sum))
+        .flatMap({ t =>
+          t.magnitude should be (Array(4, 3))
+          t.order should be (2)
+          t.elementSize should be (12)
+
+          t.valueAt(Array(0, 0)) should be (30)
+          t.valueAt(Array(1, 0)) should be (30)
+          t.valueAt(Array(2, 0)) should be (30)
+          t.valueAt(Array(3, 0)) should be (30)
+          t.valueAt(Array(0, 1)) should be (30)
+          t.valueAt(Array(1, 1)) should be (30)
+          t.valueAt(Array(2, 1)) should be (30)
+          t.valueAt(Array(3, 1)) should be (30)
+          t.valueAt(Array(0, 2)) should be (30)
+          t.valueAt(Array(1, 2)) should be (30)
+          t.valueAt(Array(2, 2)) should be (30)
+          t.valueAt(Array(3, 2)) should be (30)
+
+          unit()
+        })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
 }

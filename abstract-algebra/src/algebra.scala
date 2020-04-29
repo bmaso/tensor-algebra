@@ -2,6 +2,8 @@ package bmaso.tensoralg.abstractions
 
 import cats.free.Free
 
+import scala.math.min
+
 /**
  * Each evaluator defines its own concrete tensor type, and defines its operations
  * in terms of this tensor type.
@@ -22,7 +24,7 @@ trait TensorAlgebra {
   // val aggregatingTensorBuilder: AggregatingTensorBuilder
 
   type MapFunction
-  // type ReduceFunction
+  type ReduceFunction
   // type TransformFunction
 
   /**
@@ -92,7 +94,7 @@ trait TensorAlgebra {
    * @param reduce_f The reducing function must accept tensors of magnitude
    *     `tensor.magnitude.drop(tensor.order - reducedOrders)`
    **/
-  // case class Reduce(tensor: this.Tensor, reducedOrders: Int, reduce_f: this.ReduceFunction) extends this.TensorExprOp[this.Tensor]
+  case class Reduce(tensor: this.Tensor, reducedOrders: Int, reduce_f: this.ReduceFunction) extends this.TensorExprOp[this.Tensor]
 
   /**
    * Represents the construction of a tensor by map-reduce. Conceptually, individual
@@ -228,7 +230,10 @@ trait TensorAlgebra {
    *     source tensor of magnitude `tensor.magnitude.take(reduceOrders)`, and which
    *     yields a unitary value.
    **/
-  // def reduce(tensor: this.Tensor, reduceOrders: Int, reduce_f: this.ReduceFunction): this.TensorExpr[this.Tensor] = ???
+  def reduce(tensor: this.Tensor, reduceOrders: Int, reduce_f: this.ReduceFunction): this.TensorExpr[this.Tensor] = {
+    if(reduceOrders < 0) throw new IllegalArgumentException("The reduceOrders value must be >= 0")
+    Free.liftF(Reduce(tensor, min(reduceOrders, tensor.order), reduce_f))
+  }
 
   /**
    * Constructs a new tensor built by aggregating transformed slices of the original

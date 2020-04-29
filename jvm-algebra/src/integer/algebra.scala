@@ -7,8 +7,10 @@ trait IntTensorAlgebra extends abstract_TensorAlgebra {
    override type Tensor = IntTensor
 
    override type MapFunction = IntMapFunction
-
    case class IntMapFunction(f: (Int) => Int)
+
+   override type ReduceFunction = IntReduceFunction
+   case class IntReduceFunction(f: (this.Tensor) => Int)
 
    case class TensorFromArray(arr: Array[Int], magnitude: Array[Long], offset: Int) extends this.TensorExprOp[this.Tensor]
    case class CopyTensorElementsToArray(tensor: this.Tensor, arr: Array[Int], offset: Int) extends this.TensorExprOp[this.Tensor]
@@ -19,6 +21,11 @@ trait IntTensorAlgebra extends abstract_TensorAlgebra {
    def map(tensor: this.Tensor)(f: (Int) => Int): this.TensorExpr[this.Tensor] = {
      val map_f: this.MapFunction = IntMapFunction(f)
      super.map(tensor, map_f)
+   }
+
+   def reduce(tensor: this.Tensor, reduceOrders: Int)(f: (this.Tensor) => Int): this.TensorExpr[this.Tensor] = {
+     val reduce_f: this.ReduceFunction = IntReduceFunction(f)
+     super.reduce(tensor, reduceOrders, reduce_f)
    }
 }
 

@@ -270,3 +270,27 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
    override def magnitude = tensor.magnitude
    override def valueAt(index: Array[Long], startingAt: Long = 0): Int = f(tensor.valueAt(index, startingAt))
  }
+
+ /**
+  * A tensor constructed by reducing the first `reduceOrders` dimensions using the
+  * `reduce_f` reducing function. For example, a 3x4x5x6 tensor with 2-order reduction
+  * will yield a 5x6 tensor.
+  *
+  * When a value is requested, a slice is made of the source tensor corresponding
+  * to the element index. The slice ranges are full `(0, full magnitude)` in all
+  * dimensions The slice is fed to the reduce function, and the result
+  * value is what is returned.
+  **/
+ case class ReduceTensor(tensor: IntTensor, reduceOrders: Int, f: (IntTensor) => Int)
+    extends IntTensor {
+   override lazy val magnitude = {
+     val ret = tensor.magnitude.drop(reduceOrders)
+     if(ret.isEmpty) Array(1) else ret
+   }
+   override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+     val sliceRanges = tensor.magnitude.take(reduceOrders).map(m => (0L, m)) :++ index.map(i => (i, 1L))
+     val slice = SliceTensor(tensor, sliceRanges)
+     f(slice)
+   }
+
+ }

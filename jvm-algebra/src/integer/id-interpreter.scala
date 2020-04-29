@@ -68,6 +68,9 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
     case Map(tensor: IntTensor, map_f: IntMapFunction) =>
       MapTensor(tensor, map_f.f)
 
+    case Reduce(tensor: IntTensor, reduceOrders: Int, reduce_f: IntReduceFunction) =>
+      ReduceTensor(tensor, reduceOrders, reduce_f.f)
+
     case IntTensorAlgebra.Unit => ()
   }
 }
