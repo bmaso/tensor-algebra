@@ -313,10 +313,10 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-      val interp = IdInterpreter
-      val _ = interp.eval(expr)
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
 
-      succeed
+    succeed
   }
 
   "Joining two 3x2 tensors in the _Y dimension" should "yield a JoinTensor with expected magnitude, order, elementSize, and element values" in {
@@ -348,6 +348,11 @@ class IdInterpreterEvalSpec extends FlatSpec {
 
         unit()
       })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
   }
 
   "Mapping a 2x3 tensors w/ mapping function (_ * 2)" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
