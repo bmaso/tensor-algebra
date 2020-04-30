@@ -253,6 +253,98 @@ trait TensorAlgebra {
    **/
   def unit(): this.TensorExpr[Unit] = Free.liftF(this.Unit)
 
+  /**
+   * Invert the dimensions of a tensor. For example, for an input 4-D tensor,
+   * the result would be seentially the same tensor in
+   * (_W, _Z, _Y, _X) orientation. Useful sometimes to prepare tensors for reducing
+   * or aggregating, or for re-establishing tensor shape after reducing or aggregating.
+   **/
+  def invert(tensor: this.Tensor): TensorExpr[this.Tensor] = {
+    val expr: this.TensorExpr[this.Tensor] = Free.pure(tensor)
+    (0 to ((tensor.order - 1) / 2)).map(_.asInstanceOf[Dimension]).toList.foldLeft(expr) { case (acc, d) =>
+        acc.flatMap(pivot(_, d, (tensor.order - d - 1).asInstanceOf[Dimension]))
+    }
+  }
+
+  /**
+   * N-dimensional cross-correlation operation. The source tensor is
+   * effectively dilated with 0 values before applying the kernel. Requirements:
+   * * `tensor` and `kernel` must be the same order
+   * * `kernel` should have odd-sized magnitude in all dimensions
+   *
+   * Typically `kernel` is smaller than `tensor` in all dimensions -- usually
+   * much smaller. For example, magnitude 3 in each dimension can be used to
+   * implement N-dimensional Jacobian operator.
+   **/
+  // def crossCorrelate(tensor: this.Tensor, kernel: this.Tensor): this.TensorExpr[this.Tensor] = {
+  //   //...ensure tensor and kernel dimensionality match, and kernel is odd-sized...
+  //   if(tensor.order != kernel.order) throw new IllegalArgumentException("Tensor and kernel must have matching dimensionality")
+  //   if(kernel.elementSize % 2 != 1) throw new IllegalArgumentException("Kernel elementSize must be odd")
+  //
+  //   //...record the next 2 higher dimensions, which we will use to broadcast the
+  //   //   kernel and join translated copies of the tensor...
+  //   val d1 = tensor.order
+  //   val d2 = (d1 + 1).asInstanceOf[Dimension]
+  //
+  //   //...create "kernel.elementSize" tranlated versions of tensor and join
+  //   //   them in the next-higher dimension -- each 1x1x(kernel.elementSize) slice is
+  //   //   a copy of the neighborhood at each (x, y), backfilled with 0 values...
+  //   @tailrec
+  //   def rec(mags: List[Long]): List[List[Long]] = mags match {
+  //     case Nil => List()
+  //     case n :: rest =>
+  //       val children = rec(rest)
+  //       for(i <- -(n/2) to (n/2);
+  //           c <- children) yield { n +: c }
+  //   }
+  //
+  //   val translations: this.TensorExpr[this.Tensor] =
+  //     rec(kernel.magnitude).map(offsets => translate(tensor, offsets)) match {
+  //       case head :: rest => rest.foldLeft(head)({ case (accExpr, expr) => acc.flatMap(join(d1, accExpr, expr)) })
+  //     }
+  //
+  //   //...reshape and broadcast kernel to match shape of translations. That is:
+  //   //   * have extent only in dimension d1 (i.e., unitary in
+  //   //   all lower dimensions)
+  //   //   * Broadcast this to shape of source tensor in all lower dimensions...
+  //   val reshapedKernelMag = (0 to (kernel.order - 1)).map(_ => 1L).toArray :++ Array(kernel.elementSize)
+  //   val broadcastKernel = reshape(kernel, reshapedKernelMag)
+  //       .flatMap(broadcast(_, tensor.magnitude))
+  //
+  //   //...join translations and broadcast kernel. Must then invert dimensions so that
+  //   //   the resultant tensor is 2x(kernel.elementSize) in the _X and _Y dimensions
+  //   //   to prepare for reducing...
+  //   val joined =
+  //     for(ts <- translations;
+  //         bk <- broadcastKernel;
+  //         j  <- join(d2, ts, bk);
+  //         inverted <- invert(j)) yield { inverted }
+  //
+  //   //...reduce in the _X direction (magnitude 2) by multiplication, and the _Y direction
+  //   //   (magnitude kernel.elementSize) by addition. Invert the result to put
+  //   //   dimensions back into original tensor and kernel orientation...
+  //   joined.flatMap(reduce(_, PRODUCT))
+  //     .flatMap(reduce(_, SUM))
+  //     .flatMap(invert(_))
+  // }
+
+  /**
+   * N-dimensional convolution operation. Requirements:
+   * * `tensor` and `kernel` must be the same order
+   * * `kernel` should have odd-sized magnitude in all dimensions
+   *
+   * Typically `kernel` is smaller than `tensor` in all dimensions -- usually
+   * much smaller (e.g., magnitude 3 in each dimension).
+   **/
+  // def convolve(tensor: this.Tensor, kernel: this.Tensor): this.TensorExpr[this.Tensor] = {
+  //   /*
+  //    * Convolution is cross-correlation with the kernel reversed in all dimensions.
+  //    */
+  //   val reversedKernel = (_Y to (kernel.order - 1)).map(_.asInstanceOf[Dimension])
+  //       .foldLeft(reverse(kernel, _X))({ case (k, dim) => k.flatMap(reverse(_, dim)) })
+  //   reversedKernel.flatMap(crossCorrelate(tensor, _))
+  // }
+
   // TBD: The following is saved code to be used to implement split, a function
   // that should divide an original tensor into a grid of slices.
   //

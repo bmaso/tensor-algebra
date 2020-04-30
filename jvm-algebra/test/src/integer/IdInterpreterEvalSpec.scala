@@ -414,4 +414,97 @@ class IdInterpreterEvalSpec extends FlatSpec {
 
     succeed
   }
+
+  "Inverting a scalar" should "basically yield the exact same scalar" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray(Array(42), Array(1))
+        .flatMap(invert(_))
+        .flatMap({ t =>
+          t.magnitude should be (Array(1))
+          t.order should be (1)
+          t.elementSize should be (1)
+
+          t.valueAt(Array(0)) should be (42)
+
+          unit()
+        })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
+
+  "Inverting a 3x2 tensor" should "yield a 2x3 tensor with expected magnitude, order, elementSize and element values" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 5) toArray, Array(3, 2))
+        .flatMap(invert(_))
+        .flatMap({ t =>
+          t.magnitude should be (Array(2, 3))
+          t.order should be (2)
+          t.elementSize should be (6)
+
+          t.valueAt(Array(0, 0)) should be (0)
+          t.valueAt(Array(1, 0)) should be (3)
+          t.valueAt(Array(0, 1)) should be (1)
+          t.valueAt(Array(1, 1)) should be (4)
+          t.valueAt(Array(0, 2)) should be (2)
+          t.valueAt(Array(1, 2)) should be (5)
+
+          unit()
+        })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
+
+
+  "Inverting a 4x3x2 tensor" should "yield a 2x3x4 tensor with expected magnitude, order, elementSize and element values" in {
+    import IntTensorAlgebra._
+
+    val expr = tensorFromArray((0 to 23) toArray, Array(4, 3, 2))
+        .flatMap(invert(_))
+        .flatMap({ t =>
+          t.magnitude should be (Array(2, 3, 4))
+          t.order should be (3)
+          t.elementSize should be (24)
+
+          t.valueAt(Array(0, 0, 0)) should be (0)
+          t.valueAt(Array(1, 0, 0)) should be (12)
+          t.valueAt(Array(0, 1, 0)) should be (4)
+          t.valueAt(Array(1, 1, 0)) should be (16)
+          t.valueAt(Array(0, 2, 0)) should be (8)
+          t.valueAt(Array(1, 2, 0)) should be (20)
+          t.valueAt(Array(0, 0, 1)) should be (1)
+          t.valueAt(Array(1, 0, 1)) should be (13)
+          t.valueAt(Array(0, 1, 1)) should be (5)
+          t.valueAt(Array(1, 1, 1)) should be (17)
+          t.valueAt(Array(0, 2, 1)) should be (9)
+          t.valueAt(Array(1, 2, 1)) should be (21)
+          t.valueAt(Array(0, 0, 2)) should be (2)
+          t.valueAt(Array(1, 0, 2)) should be (14)
+          t.valueAt(Array(0, 1, 2)) should be (6)
+          t.valueAt(Array(1, 1, 2)) should be (18)
+          t.valueAt(Array(0, 2, 2)) should be (10)
+          t.valueAt(Array(1, 2, 2)) should be (22)
+          t.valueAt(Array(0, 0, 3)) should be (3)
+          t.valueAt(Array(1, 0, 3)) should be (15)
+          t.valueAt(Array(0, 1, 3)) should be (7)
+          t.valueAt(Array(1, 1, 3)) should be (19)
+          t.valueAt(Array(0, 2, 3)) should be (11)
+          t.valueAt(Array(1, 2, 3)) should be (23)
+
+          unit()
+        })
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
+
 }
