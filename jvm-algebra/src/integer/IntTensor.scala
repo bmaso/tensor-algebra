@@ -20,6 +20,9 @@ sealed trait IntTensor extends abstract_Tensor {
   }
   def magnitudeIn(d: Dimension): Long =
     if(d >= magnitude.length) 1L else magnitude(d)
+
+  override def toString(): String =
+    s"IntArrayTensor(magnitude = ${magnitude.toList})"
 }
 
 /**

@@ -507,4 +507,57 @@ class IdInterpreterEvalSpec extends FlatSpec {
     succeed
   }
 
+  "matmult2D of a 3x2 tensor and a 2x3 tensor" should "yield a 2x2 tensor of the expected magnitude, order, elementSize and element values" in {
+    import IntTensorAlgebra._
+
+    val expr =
+      for(t1 <- tensorFromArray((0 to 5) toArray, Array(3, 2));
+          t2 <- tensorFromArray((0 to 5) toArray, Array(2, 3));
+          mm <- matmult2D(t1, t2)) yield {
+
+        mm.magnitude should be (Array(2, 2))
+        mm.order should be (2)
+        mm.elementSize should be (4)
+
+        mm.valueAt(Array(0, 0)) should be (10)
+        mm.valueAt(Array(1, 0)) should be (13)
+        mm.valueAt(Array(0, 1)) should be (28)
+        mm.valueAt(Array(1, 1)) should be (40)
+
+        unit()
+      }
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
+
+  "matmult2D of a 3x4 tensor and a 4x2 tensor" should "yield a 3x2 tensor of the expected magnitude, order, elementSize and element values" in {
+    import IntTensorAlgebra._
+
+    val expr =
+      for(t1 <- tensorFromArray((0 to 11) toArray, Array(4, 3));
+          t2 <- tensorFromArray((0 to 7) toArray, Array(2, 4));
+          mm <- matmult2D(t1, t2)) yield {
+
+        mm.magnitude should be (Array(2, 3))
+        mm.order should be (2)
+        mm.elementSize should be (6)
+
+        mm.valueAt(Array(0, 0)) should be (28)
+        mm.valueAt(Array(1, 0)) should be (34)
+        mm.valueAt(Array(0, 1)) should be (76)
+        mm.valueAt(Array(1, 1)) should be (98)
+        mm.valueAt(Array(0, 2)) should be (124)
+        mm.valueAt(Array(1, 2)) should be (162)
+
+        unit()
+      }
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
 }

@@ -25,6 +25,19 @@ trait TensorAlgebra {
 
   type MapFunction
   type ReduceFunction
+
+  /**
+   * To define such operations as matrix multiplication and cross-correlation
+   * for all algebras, each algebra must have a SUM reduction funtion.
+   **/
+  val SUM: ReduceFunction
+
+  /**
+   * To define such operations as matrix multiplication and cross-correlation
+   * for all algebras, each algebra must have a PRODUCT reduction funtion.
+   **/
+  val PRODUCT: ReduceFunction
+
   // type TransformFunction
 
   /**
@@ -263,6 +276,42 @@ trait TensorAlgebra {
     val expr: this.TensorExpr[this.Tensor] = Free.pure(tensor)
     (0 to ((tensor.order - 1) / 2)).map(_.asInstanceOf[Dimension]).toList.foldLeft(expr) { case (acc, d) =>
         acc.flatMap(pivot(_, d, (tensor.order - d - 1).asInstanceOf[Dimension]))
+    }
+  }
+
+  /**
+   * 2-D matrix multiplcation. In tensor terms, the solution is:
+   * * pivot operand 1 (_X, _Z)
+   *   * broadcast in _X direction
+   * * pivot operand 2 (_Y, _Z)
+   *   * broadcast in _Y direction
+   * * (At this point we have two order 3 tensors of equal magnitude)
+   * * Join the two tensor in _W dimension
+   * * Invert and reduce by multiplication in _X, and then summation in _X,
+   *   and finally invert once more to get result
+   *
+   * if operation 1 is ***P***x***M*** and operand 2 is ***N***x***P***, the
+   * solution in the tensor algebra is to create a MxNxPx2 tensor. This correctly
+   * matches the rows of operand 1 with the columns of operand 2 in Px2 pairs.
+   * Then we simply reduce by multiplcation and summation.
+   **/
+  def matmult2D(op1: this.Tensor, op2: this.Tensor): this.TensorExpr[this.Tensor] = {
+    if(op1.magnitude(_X) != op2.magnitude(_Y)) throw new IllegalArgumentException("op1.magnitude(_X) must equal op2.magnitude(_Y)")
+
+    for(e11  <- pivot(op1, _X, _Z);
+        e12  <- broadcast(e11, Array(op2.magnitude(_X)));
+        e13  <- pivot(e12, _Y, _Z);
+        e14  <- pivot(e13, _Z, _W);
+        e21  <- pivot(op2, _Y, _Z);
+        e22  <- broadcast(e21, Array(op1.magnitude(_Y)));
+        e23  <- pivot(e22, _X, _Y);
+        e24  <- pivot(e23, _Z, _W);
+        j0   <- join(_W, e14, e24);
+        j1   <- invert(j0);
+        r0   <- reduce(j1, 1, PRODUCT);
+        r1   <- reduce(r0, 1, SUM);
+        res  <- invert(r1)) yield {
+      res
     }
   }
 

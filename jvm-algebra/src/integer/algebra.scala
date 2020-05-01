@@ -12,6 +12,11 @@ trait IntTensorAlgebra extends abstract_TensorAlgebra {
    override type ReduceFunction = IntReduceFunction
    case class IntReduceFunction(f: (this.Tensor) => Int)
 
+   override lazy val SUM = IntReduceFunction(t =>
+     (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum)
+   override lazy val PRODUCT = IntReduceFunction(t =>
+     (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).foldLeft(1)(_ * _))
+
    case class TensorFromArray(arr: Array[Int], magnitude: Array[Long], offset: Int) extends this.TensorExprOp[this.Tensor]
    case class CopyTensorElementsToArray(tensor: this.Tensor, arr: Array[Int], offset: Int) extends this.TensorExprOp[this.Tensor]
 
