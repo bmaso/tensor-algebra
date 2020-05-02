@@ -19,47 +19,81 @@ transforms, etc. can all be expressed with this algebra without looping or recur
 
 ### Tensor Algebra's Basic Operations
 
-Recall that a "tensor" is just the formal name for an N-dimensional rectangular array of any dimension. This includes 0-D (scalar values), 1-D (arrays), 2-D (matrixes), 3-D (rectangular volumes), and higher.
+Recall that a "tensor" is just the formal name for an N-dimensional rectangular
+array of any dimension. This includes 0-D (scalar values), 1-D (arrays), 2-D (matrixes),
+3-D (rectangular volumes), and higher.
+
+An "*algebra*" is a fancy word for a set of combining operations at operate on
+the same type of values. In this case, the Tensor Algebra defines a set of basic
+operations that all take tensors as input.
 
 The basic operations of this tensor algebra are:
 * ***translate*** -- define a new tensor by "moving" values in an original
   tensor to different indexes using fixed offset in one or more dimension
   * Translated tensors are "clipped" to the same dimensionality and magnitude as the original tensor
   * Translated tensors are "backfilled" with a constant value, 0 by default.
-* ***reshape*** -- Without altering the overall number of elements in a tensor, define a tensor which takes an original tensor's elements while altering the dimensionality and magnitude.
-  * For example changing a 3x4x5 tensor into a 10x6 tensor. Same number of elements, different dimensionality and/or magnitude
-* ***split*** -- Divide a tensor into several tensors of reduced
-  dimensionality along one or more dimensions
-* ***join*** -- Additively "stack" multiple tensors of the same dimensionality
+* ***broadcast*** -- copying a tensor in one dimension by duplication
+    * For example, imagine generating a 3x3x3 volume by duplicating and stacking
+      3 copies of a 3x3 tensor. The is a ***broadcast*** in the `_Z` dimension.
+    * In theory this can be defined as repeated ***join***s of a tensor with itself.
+      However, much more efficient implementations can be achieved by identifying
+      ***broadcast*** as a separate operation.
+* ***reshape*** -- Without altering the overall number of elements in a tensor,
+  define a tensor which takes an original tensor's elements while altering the
+  dimensionality and magnitude.
+  * For example changing a 3x4x5 tensor into a 10x6 tensor. Same number of elements,
+    different dimensionality and magnitude
+* ***slice*** -- A tensor defined as a rectangular portion of a source tensor
+* ***join*** -- Additively "stack" multiple tensors of the similar dimensionality
   into a single tensor of higher dimensionality and/or magnitude
-* ***broadcast*** -- Projecting a lower dimensionality tensor into higher
-  dimensionality by duplication
-    * For example, imagine generating a 3x3x3 volume by duplicating and stacking 3 copies of a 3x3 tensor.
-    * In theory this can be defined as repeated ***join***s of a tensor with itself. However, much more efficient implementations can be achieved by identifying ***broadcast*** as a separate operation.
+* ***pivot*** -- Exchange the indexing in 2 dimensions. This effectively "rotates"
+  a tensor in 2 of its dimensions. For example, pivoting a 3-D tensor in the
+  `_X` and `_Y` dimensions yields a tensor with elements with indexes `(_Y, _X, _Z)`
+  order compared to the original tensor.
+* ***reverse*** -- Reverse the dimensions of a tensor.
+  * For example, after application a 4-D tensor
+    would have element indexes effectively reversed to `(_W, _Z, _Y, _X)` order.
+  * Could be implemented with repeated ***pivots***. However, much more efficient
+    implementations can be achieved by identifying ***reverse*** as a separate
+    operation.
+* ***map*** -- Create a new tensor by applying a 1:1 mapping from existing element
+  values to new element values.
+  * Could be defined using ***reduce***. However, much more efficient implementations
+    can be achieved by identifying ***map*** as a separate operation.
 * ***reduce*** -- Creating a new tensor with reduced dimensionality from an original
-  by combining elements along one or more dimensions using an arbitrary associative arithmetic operation.
-  * An arithmetic function that is both commutative & associative yields a much greater opportunity for evaluator parallelism
+  by combining elements along one or more dimensions using an arbitrary associative
+  combiner function.
+  * Note that the combiner function need not be commutative, only associative. There
+    is an implicit ordering to elements defined by the element indexing. Ordering
+    is always preserved when applying reducing functions.
+* ***aggregate*** -- Creating a new tensor by transforming slices of one
+  magnitude into resultant tensors of another dimension, and aggregating the
+  results. For example, calculating a histogram of the element values of a tensor
+  can easily be defined as an ***aggregate*** operation.
 
 By combining these basic Tensor Algebra operations we can define
-very complex operations without undue complexity. These include
- matrix multiplication, convolution, cross-correlation, Fourier
- transformation, complex image and sound manipulation functions, particle
- and field simulations, and much more.
+very complex operations without undue complexity: matrix multiplication, convolution
+& cross-correlation, Fourier transformation, complex image and sound manipulation
+functions, particle and field simulations, and much more.
 
 ## Tensor Algebra API Examples
 
 ### Example 1: Additive Combination of 2 1-D Tensors
 
-The Tensor Algebra API is essentially a set of `TensorExpr` combinator functions. Each of the basic operators ***translate***, ***reshape***, etc. produce a new `TensorExpr` from input `TensorExpr` values.
+The Tensor Algebra API is essentially a set of `TensorExpr` combinator functions.
+Each of the basic operators ***translate***, ***reshape***, etc. produce a new
+`TensorExpr` from input `TensorExpr` values.
 
-Let's first consider how to simply add two 1-D tensors of the same magnitude together. This is the "Hello, World!" of GPU computing. We want to express element-by-element addition using the Tensor Algebra.
+Let's first consider how to define an expression that adds two 1-D tensors of the
+same magnitude together. This is the "Hello, World!" of GPU computing. We want to
+express element-by-element addition using the Tensor Algebra.
 
 ```
-def add1DTensors(t1: TensorExpr[Float], t2: TensorExpr[Float]):
-    TensorExpr[Float] = {
+def add1DTensors(t1: TensorExpr[Tensor], t2: TensorExpr[Tensor]):
+    TensorExpr[Tensor] = {
   // 1. Join the 2 1-D tensors -- "stack" them in the "_Y" dimension
   // --
-  val stacked = join(t1, t2, _Y)
+  val stacked = join(_Y, t1, t2)
 
   // 2. Reduce the "stacked" tensor by summation in the _Y dimension
   reduce(stacked, _Y, _SUM)
@@ -74,11 +108,15 @@ def add1DTensors(t1: TensorExpr[Float], t2: TensorExpr[Float]):
 * Second, reduce `stacked` in the `_Y` dimension using the `_SUM`
   reduction operation.
 * The result will be a tensor expression yielding a 1-D tensor of
-  magnitude L, where each element is the sum of the corresponding elements in the original tensors.
+  magnitude L where each element is the sum of the corresponding elements in the
+  original tensors.
 
 ### Example 2: 2-D Cross-Correlation Defined using Tensor Algebra
 
-Let's consider the cross-correlation of an ![NxM](docs/images/NxM.png) 2-D matrix ![Mat](docs/images/Mat.png) with a ![3x3](docs/images/3x3.png) 2-D matrix ![k](docs/images/k.png) (aka *kernel*). Cross-correlation of two tensors can be implemented as a single, non-iterative computation with the Tensor Algebra.
+Let's consider the cross-correlation of an ![NxM](docs/images/NxM.png) 2-D matrix
+![Mat](docs/images/Mat.png) with a ![3x3](docs/images/3x3.png) 2-D matrix ![k](docs/images/k.png)
+(aka *kernel*). Cross-correlation of two tensors can be implemented as a single,
+non-iterative expression with the Tensor Algebra.
 
 The following animation illustrates the concept.
 
@@ -101,32 +139,54 @@ standard math.
 
 ![Eq1](docs/images/Eq1.png)
 
-Each element ![Cij](docs/images/Cij.png) of the cross-correlation is the sum of the element-wise product of 9 elements in the neighborhood of ![Matij](docs/images/Matij.png) with the 9 elements of ![k](docs/images/k.png). Our goal is to define the ![star](docs/images/star.png) operation using tensor algebra operations only. First, let's define ![star](docs/images/star.png) in standard algebra with the equation:
+Each element ![Cij](docs/images/Cij.png) of the cross-correlation is the sum of the
+element-wise product of 9 elements in the neighborhood of ![Matij](docs/images/Matij.png)
+with the 9 elements of ![k](docs/images/k.png). Our goal is to define the ![star](docs/images/star.png)
+operation using tensor algebra operations only. First, let's define ![star](docs/images/star.png)
+in standard algebra with the equation:
 
 ![Eq2](docs/images/Eq2.png)
 
- where ![Matstar](docs/images/Matstar.png) is a "dilated" version of ![Mat][Mat]: expanded by 1 element in each 2-D direction (intuitively: up, down, left, & right) with 0 values along the edges and in the corners.
+ where ![Matstar](docs/images/Matstar.png) is a "dilated" version of ![Mat][Mat]:
+ expanded by 1 element in each 2-D direction (intuitively: up, down, left, & right)
+ with 0 values along the edges and in the corners.
 
-In the Tensor Algebra you do not use iterative operators such as "![sigma](docs/images/sigma.png)". Instead we define all arithmetic combinations of tensor elements using ***reduce***. We define the 2-D "![star](docs/images/star.png)" operation combining an ![NxM](docs/images/NxM.png) shaped tensor with a ![3x3](docs/images/3x3.png) shaped kernel tensor as a single ***reduce*** of a *4-D* ![NxMx9x2](docs/images/NxMx9x2.png) shaped tensor back down to 2-D dimensionality:
+In the Tensor Algebra we define all arithmetic combinations of tensor elements using
+***reduce***. We define the 2-D "![star](docs/images/star.png)" operation in 5-steps
+using Tensor Algebra operations:
 
-We can define cross-correlation in 5-steps using Tensor Algebra operations:
-
-1. Construct 9 translated versions of ![Mat](docs/images/Mat.png), and join them into a single ![NxMx9](docs/images/NxMx9.png) shaped tensor
+1. Use the ***translate*** operation to construct 9 versions of ![Mat](docs/images/Mat.png),
+then ***join*** the 9 into a single ![NxMx9](docs/images/NxMx9.png) shaped tensor
   * One version each translated with offsets *(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 0), (0, 1), (1, -1),
     (1, 0), and (1, 1)*
   * Note that the values of the 9 tensors at index *(i, j)* taken together are the values of the original ![3x3](docs/images/3x3.png)
     neighborhood of element *(i, j)* in ![Mat](docs/images/Mat.png)
-2. Broadcast ![k](docs/images/k.png) into a ![NxMx3x3](docs/images/NxMx3x3.png) shaped tensor, and reshape to ![NxMx9](docs/images/NxMx9.png) shape
-  * Note that the 9 values in the `_Z` dimension of this ![NxMx9](docs/images/NxMx9.png) tensor at each coordinate *(i, j)* in the (`_X`, `_Y`) plane are basically the original ![3x3](docs/images/3x3.png) kernel "stetched out" (i.e., reshaped) to 1x1x9 shape.
-3. Tensors from steps (1) and (2) are both 3-D tensors. In this step we join ("stack") them along the 4*th* dimension into a single ![NxMx9x2](docs/images/NxMx9x2.png) shaped tensor
+2. Duplicate ![k](docs/images/k.png) once for each element of the original ![NxM](docs/images/NxM.png) tensor:
+  * use the ***pivot*** operation to construct a 1x1x3x3 version of ![k](docs/images/k.png)
+  * use the ***broadcast*** operation to duplicate ![k](docs/images/k.png) ![NxM](docs/images/NxM.png)
+   times in the `_X` and `_Y` dimensions, constructing a ![NxMx3x3](docs/images/NxMx3x3.png) shaped tensor
+  * Use the ***reshape*** operation to construct an ![NxMx9](docs/images/NxMx9.png) shaped tensor
+  * Note that the 9 values in the `_Z` dimension of this ![NxMx9](docs/images/NxMx9.png)
+    tensor at each coordinate *(i, j)* in the (`_X`, `_Y`) plane are the original
+    ![3x3](docs/images/3x3.png) kernel elements "stetched out" (i.e., reshaped)
+    to 1x1x9 shape.
+3. Tensors from steps (1) and (2) are both ![NxMx9](docs/images/NxMx9.png) tensors.
+  In this step we join ("stack") them along the 4*th* dimension into a single
+  ![NxMx9x2](docs/images/NxMx9x2.png) shaped tensor
   * Think of the tensor as an ![NxM](docs/images/NxM.png) matrix, at each index is a 9x2 matrix made up of 9 elements from ![Mat](docs/images/Mat.png) side-by-side with 9 elements from ![k](docs/images/k.png)
-4. Reduce the tensor from (3) down to ![NxMx9](docs/images/NxMx9.png) shape by multiplicative reduction of the 4*th* dimension
+4. Use the ***reduce*** operation on tensor from (3) by multiplicative reduction
+  of the 4*th* dimension, constructing a single ![NxMx9](docs/images/NxMx9.png)
   * This step multiplies each element in the neighborhood of each ![Matij](docs/images/Matij.png)
     element with the corresponding kernel element
-5. Reduce the ![NxMx9](docs/images/NxMx9.png) tensor from (4) down to ![NxM](docs/images/NxM.png) shape by additive reduction of the 3*rd* dimension
-  * This sums together the 9 products at each index in (4)
+5. Use the ***reduce*** operation on the ![NxMx9](docs/images/NxMx9.png) tensor
+  from (4) by additive reduction of the 3*rd* dimension to construct an ![NxM](docs/images/NxM.png) tensor
+  * This sums together the 9 products at each index in (4), which is the cross-correlation
+    of the original tensors.
 
-(Note: steps (4) and (5) would more efficiently be defined as a single ***reduce*** along both 4*th* and 3*rd* dimensions. For simplicity, the steps are described explicitly to make relationship to the ![Cij](docs/images/Cij.png) more obvious.)
+Note: steps (4) and (5) would probably be more efficiently defined as a single
+***reduce*** along both 4*th* and 3*rd* dimensions. The Tensor Algebra API defines
+*sum* and *product* reduction operations for all compute platforms. So for coding
+purposes, using *sum* and *product* is easier.
 
 #### "![star](docs/images/star.png)" Operator in Scala using the Tensor Algebra API
 
@@ -136,53 +196,46 @@ We can define cross-correlation in 5-steps using Tensor Algebra operations:
  * magnitude (3 x 3).
  **/
 
-cross2D(Mat: TensorExpr[Float], k: TensorExpr[Float]): TensorExpr[Float] = {
+cross2D(Mat: TensorExpr[Tensor], k: TensorExpr[Tensor]): TensorExpr[Tensor] = {
   val Array(N, M) = Mat.magnitude
 
   // 1. Join 9 translated versions of Mat into a single NxMx9 tensor
   // --
   val translations =
-    join((for(ii <- -1 to 1;
-             jj <- -1 to 1) yield {
-         translate(A, Array(_X, _Y), Array(ii, jj))
-         }), _Z)
+    (for(ii <- 1 to -1 by -1;
+         jj <- 1 to -1 by -1) yield {
+      translate(tensor, Array(ii, jj))
+    })
+    .reduce({ case (expr1, expr2) =>
+      expr1.flatMap(t1 =>
+        expr2.flatMap(t2 => join(_Z, t1, t2))) })
 
-  // 2. broadcast the kernel to NxMx3x3 tensor, then reshape to NxMx9
-  // --     
-  val repeated_kernel = reshape(
-    broadcast(k, Array(N, M)),
-    Array(N, M, 9))
+  // 2. pivot kernel into _Z and _W dimensions (so it is 1x1x3x3), then broadcast
+  // and reshape kernel to NxMx9 shape
+  val repeated_kernel =
+    for(k1 <- pivot(k, _X, _Z);
+        k2 <- pivot(k1, _Y, _W);
+        k3 <- broadcast(k2, _X, N);
+        k4 <- broadcast(k3, _Y, M);
+        r  <- reshape(k4, Array(N, M, 9))) yield { r }
 
   // 3. Join the two tensors into NxMx9x2 shape
   // --
-  val joined = join(translations, repeated_kernel, _W)
+  val joined = join(_W, translations, repeated_kernel)
 
-  // 4. & 5. Reduce: first by multiplication in _W dimension, then
-  //    summation in the _Z dimension: yields NxM cross-correlated tensor
+  // 4. & 5. Reduce: first reduce 1 dimension by multiplication, then
+  //    1 more dimension by summation
+  // Note that reduction always applies to *lowest* dimensions, so we must
+  // invert the joined tensor before reducing, and finally invert the result
+  // to yield a final NxM tensor.
   // --
-  reduce(
-    reduce(, _W, _PRODUCT),
-    _Z, _SUM)
-  }
+  for(j0  <- joined;
+      j1  <- invert(j0);
+      r0  <- reduce(j1, 1, PRODUCT);
+      r1  <- reduce(r0, 1, SUM);
+      result <- invert(r1)) yield { result }
 }
 ```
-
-* Input: `Mat` is a ![NxM](docs/images/NxM.png) tensor expression, and `k` is assumed to be a ![3x3](docs/images/3x3.png) tensor expression
-  * `Mat.magnitude` yields `Array(N, M)`, the size of the 2-D tensor `Mat` in the `_X` and `_Y` dimensions.
-* `_X`, `_Y`, `_Z`, `_W` are nominal constants representing the first,
-second, and higher dimensions respectively.
-* `_SUM` and `_PRODUCT` are reducing functions for summation and multiplicatioon respectively
-* `translations` is a tensor expression joining 9 different translated versions of `Mat` into a single ![NxMx9](docs/images/NxMx9.png) tensor
-  * Note that `translate` backfills with 0 values by default
-* `repeated_kernel` is
-a tensor expression broadcasting the value of `k` (a ![3x3](docs/images/3x3.png) tensor) in the `_X` and `_Y` dimensions and reshaping to ![NxMx9](docs/images/NxMx9.png) shape
-* `joined` joins `translations` and `repeated_kernel` by stacking in the `_W` dimension
-* Finally, `cross2D` yields a tensor expression which reduces `joined` by multiplication in the `_W` dimension, and then reduces by summation in the `_Z` dimension
-  * The result will be an ![NxM](docs/images/NxM.png) tensor expression
-
-The `cross2D` expression constructs the cross-product of any ![NxM](docs/images/NxM.png) tensor expression `Mat` and any ![3x3](docs/images/3x3.png) tensor expression `k`.
-
-*Note: Some necessary checking is elided here for simplicity: we should be making sure `Mat` is indeed 2-D, that `k` is indeed ![3x3](docs/images/3x3.png) in size, etc.*
 
 ## Example 3: [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) in the Tensor Algebra
 
@@ -202,24 +255,30 @@ Note that an OpenCL implementation of this 1 generation reduction evaluated on a
 ```
 // A custom reducing function. Must be defined in a way compatible with the
 // target evaluation runtime.
-val lifeReduction: ReducingOp[Int] = ???
+val lifeReduction: ReduceFunction[Int] = ???
 
 // Game Of Life computation for 1 generation
-def lifeGeneration(genX: Tensor[Int]): Tensor[Int] = {
-  val Array(N, M) = genX.magnitude
-
-  // 1. Join 9 translated versions of genX into a single NxMx9 tensor
+lifeGeneration(tensor: TensorExpr[Tensor]): TensorExpr[Tensor] = {
+  // 1. Join 9 translated versions of Mat into a single NxMx9 tensor
   // --
   val translations =
-    join((for(ii <- -1 to 1;
-             jj <- -1 to 1) yield {
-         translate(A, Array(_X, _Y), Array(ii, jj))
-         }), _Z)
+    (for(ii <- 1 to -1 by -1;
+         jj <- 1 to -1 by -1) yield {
+      translate(tensor, Array(ii, jj))
+    })
+    .reduce({ case (expr1, expr2) =>
+      expr1.flatMap(t1 =>
+        expr2.flatMap(t2 => join(_Z, t1, t2))) })
 
   // 2. Reduce the NxMx9 tensor in the _Z dimension using the
   //    lifeReduction op
+  // Since reduction always applies to the lowest dimensions, tensor must
+  // be inverted to perform lifeReduction op, and inverted again after
   // --
-  reduce(translations, _Z, lifeReduction)
+  for(ts <- translations;
+      i  <- invert(ts);
+      l0 <- reduce(i, 1, lifeReduction);
+      result <- invert(l0)) yield { result }
 }
 ```
 
@@ -232,6 +291,9 @@ arrays (aka tensors) into a new N-dimensional array of the same dimension.
 If you are unfamiliar, read [this good explanation of 2-D convolution and
 cross-correlation in medical imaging](https://glassboxmedicine.com/2019/07/26/convolution-vs-cross-correlation/) by Rachel Draelos.
 
+Both operations are "embarrassingly parallel". Each element of the result is
+completely independent from all others.
+
 Imperative and functional implementations of these operations are fairly obvious.
 
 * An imperative implementation requires nested looping over the indexes of both
@@ -241,55 +303,79 @@ Imperative and functional implementations of these operations are fairly obvious
   principal feature of this implementation is use of nested `map` and `fold` operations
   on the tensor element values.
 
-The imperative implementation requires the implementor to code the execution
-plan for the operations explicitly. Different execution environments, e.g. JVM vs.
-GPU, will require very different implementations.
+Either implementation does not yield easily to automated parallelization of the code.
+If you have a processor such as a GPU available, which typically has 1000+ cores,
+you would want to re-write these implementations with heavy parallelism in mind. This
+would involve thread and task management with the associated heavy coding overhead.
 
-The functional implementation abstracts the looping aspects of the implementation,
-allowing the data container (the tensor classes/objects) to "decide" the best
-way to carry out the calculation at runtime. Heavy use of recursion makes the runtime's
-job of devising an efficient execution plan quite difficult -- impractically so
-for even moderately complex tensor expressions such as N-dimensional cross-correlation.
+However, by using a few basic operations designed for parallelism it would be possible
+to implement cross-correlation and convolution in such a way that they could be
+automatically parallelized to the maximum extent available to the local computation
+platform.
 
-The conclusion: processing of numerical data in most imperative and/or functional programming languages, especially multi-dimensional numerical data, is easy to express but rather slow to execute unless the code is purpose-built for GPUs or other highly parallelized execution environments. Automated algorithms for translating either imperative or functional expressions into highly parallelized code are simply too limited to be effective.
-
-The Tensor Algebra is comprised of a few simple operations that are relatively easy to evaluate efficiently using highly parallel processing hardware. These operations can be combined to described complex operations, such as N-dimensional cross-correlation, Fourier transforms, particle and field simulations, and much more. Thus the performance limitations of imperative and functional expression can be overcome without sacrificing Scala's expressiveness.
+The Tensor Algebra is comprised of a few simple operations that are relatively easy
+to evaluate efficiently using highly parallel processing hardware. These operations
+can be combined to described complex operations, such as N-dimensional cross-correlation,
+Fourier transforms, particle and field simulations, and much more. Thus the performance
+boost available from local computation platforms can be realized automatically without
+sacrificing Scala's expressiveness.
 
 ## Basic Concepts: Dimensionality and Magnitude
 
 ### Scalar Values, or Every Tensor has Infinite Dimension
 
-Think of a scalar tensor as a simple box holding a single value. The magnitude of this "box" is 1 along every side.
+Think of a scalar tensor as a simple box holding a single value. The magnitude of
+this "box" is 1 along every side.
 
-If you think about it, a scalar tensor has magnitude 1 in every dimension. It could be thought of as having magnitude 1 in `_X`, and also having magnitude 1 in `_Y`, in `_Z`, or in any higher dimension.
+In the Tensor Algebra a scalar tensor is considered a tensor with magnitude 1 in
+every dimension. It could be thought of as having magnitude 1 in `_X`, and also
+having magnitude 1 in `_Y`, in `_Z`, or in any higher dimension.
 
-A *scalar tensor* (or simply a "scalar") then is any tensor with magnitude 1 in every dimension. It has a single element value. Any ***reduce*** operation on a scalar tensor in any dimension(s) will yield the exact same scalar tensor.
+A *scalar tensor* (or simply a "scalar") then is any tensor with magnitude 1 in
+every dimension. It has a single element value.
 
-A scalar arithmetic value is synonymous with a scalar tensor have the same single element value in this Tensor Algebra. For example, the integer 18 is synonymous with a scalar tensor having element value 18. There is a 1:1 bidirectional mapping between the number line and the set of all numeric scalar tensors.
-
-Note that every tensor has magnitude of at least 1 in every dimension. For example, a 3x3 2-D tensor has depth 3 in the `_X` dimension, 3 in the `_Y` dimension, 1 in the `_Z` dimension and 1 in every other dimension after `_Z`.
+This implies, by the way, that *every* tensor has magnitude of at least 1 in every
+dimension. For example, a 3x3 2-D tensor has depth 3 in the `_X` dimension, 3 in
+the `_Y` dimension, 1 in the `_Z` dimension and 1 in every other dimension after
+`_Z`.
 
 #### The Order and Naming of Dimensions
 
-Without a common definition of dimensions, a 3x3 tensor could arbitrarily have magnitude 3 in the `_X` and `_Y` dimensions, the `_Y` and `_Z` dimensions, the `_X` and `_W` dimensions, etc.
+Without a common definition of dimensions, a 3x3 tensor could arbitrarily have
+magnitude 3 in the `_X` and `_Y` dimensions, or the `_Y` and `_Z` dimensions, or the
+`_X` and `_W` dimensions, etc.
 
-In order to be able to compare and combine tensors with each other we assume there is a common order to dimensions. We assign the nominal symbol "`_X`" to the first dimension, "`_Y`" to the second dimension, and "`_Z`" to the third. For dimensions 4 and above we start naming them with the letter "`_W`", and work backwards through the English alphabet: "`_V`", "`_U`", "`_T`", "`_S`", then "`_R`", etc. "`_A`" then is the 26*th* dimension. After that we use "`_XX`", "`_YY`", etc.
+In order to be able to compare and combine tensors with each other we assume there
+is a common order to dimensions. We assign the nominal symbol "`_X`" to the first
+dimension, "`_Y`" to the second dimension, and "`_Z`" to the third. For dimensions
+4 and above we start naming them with the letter "`_W`", and work backwards through
+the English alphabet: "`_V`", "`_U`", "`_T`", "`_S`", then "`_R`", etc. "`_A`" then
+is the 26*th* dimension. After that we use "`_XX`", "`_YY`", etc.
 
-So when we say a tensor is magnitude "3x4", it is understood this means magnitude 3 in the `_X` dimension, and magnitude 4 in the `_Y` dimension.
+So when we say a tensor is magnitude "3x4", it is understood this means magnitude
+3 in the `_X` dimension, and magnitude 4 in the `_Y` dimension.
 
-A tensor described as "3x3 in the `_X` and `_Z` dimensions" would more formally be said to have magnitude 3x1x3.
+A tensor described as "3x3 in the `_X` and `_Z` dimensions" would more formally
+be said to have magnitude 3x1x3.
 
 #### Magnitude Dictates Dimensionality
 
-When we say a tensor is "2-D", or "3-D", or any "*n*-D" what we are describing is the last dimension with magnitude greater than 1. So a 1-D tensor of magnitude 3 has magnitude 3 in the `_X` dimension, and magnitude 1 for every dimension after `_X`.
+When we say a tensor is "2-D", or "3-D", or any "*n*-D" what we are describing is
+the last dimension with magnitude greater than 1. So a 1-D tensor of magnitude 3
+has magnitude 3 in the `_X` dimension, and magnitude 1 for every dimension after
+`_X`.
 
-A 3-D tensor will have a magnitude greater than 1 in the `_Z` direction. It *may* have magnitude greater than 1 in the `_X` or `_Y` directions (and it may not). It definitely will have magnitude 1 in the `_W` dimension and every dimension after.
+A 3-D tensor will have a magnitude greater than 1 in the `_Z` direction. It *may*
+have magnitude greater than 1 in the `_X` or `_Y` directions (and it may not).
+It definitely will have magnitude 1 in the `_W` dimension and every dimension after.
 
-This means scalar tensors are 0-D, since a scalar tensor has magnitude 1 in every dimension.
+This means scalar tensors are 0-D, since a scalar tensor has magnitude 1 in every
+dimension.
 
 ## Some Simple Tensor Operations
 
-Definitions of some basic operations using the Tensor Algebra. I intend these to illustrate the Tensor Algebra is capable of expressing higher level complex operators.
+Definitions of some basic operations using the Tensor Algebra. I intend these to
+illustrate the Tensor Algebra is capable of expressing higher level complex operators.
 
 ### Constructing Tensors Filled with Constant Values
 
