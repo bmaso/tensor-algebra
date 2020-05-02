@@ -22,7 +22,7 @@ sealed trait IntTensor extends abstract_Tensor {
     if(d >= magnitude.length) 1L else magnitude(d)
 
   override def toString(): String =
-    s"IntArrayTensor(magnitude = ${magnitude.toList})"
+    s"${this.getClass.getName}(magnitude = ${magnitude.toList})"
 }
 
 /**
@@ -85,14 +85,28 @@ case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
 }
 
 /**
- * A projection of an original tensor into higher dimensions by
- * duplication.
+ * A tensor which duplications the source tensor in the target dimension.
+ *
+ * Assumption is that magnitude is a multiple of source tensor magnitude
+ * in same dimension. Code which constructs this instance must make assure
+ * this invariant.
  **/
-case class BroadcastTensor(tensor: IntTensor, baseMagnitude: Array[Long])
+case class BroadcastTensor(tensor: IntTensor, dimension: Dimension, _magnitude: Long)
     extends IntTensor {
-  override lazy val magnitude: Array[Long] = (baseMagnitude.toList :++ tensor.magnitude.toList) toArray
-  override def valueAt(index: Array[Long], startingAt: Long = 0): Int =
-    tensor.valueAt(index, startingAt + baseMagnitude.length)
+  override lazy val magnitude: Array[Long] = {
+    if(_magnitude == 1) tensor.magnitude
+    else {
+      val ret = Array.fill[Long](max(tensor.magnitude.length, dimension))(1L)
+      Array.copy(tensor.magnitude, 0, ret, 0, tensor.magnitude.length)
+      ret(dimension) *= _magnitude
+      ret
+    }
+  }
+  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+    val ret = Array.copyAs[Long](index, index.length)
+    ret(dimension) = ret(dimension) % tensor.magnitudeIn(dimension)
+    tensor.valueAt(ret, startingAt)
+  }
 }
 
 /**

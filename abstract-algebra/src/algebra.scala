@@ -58,12 +58,9 @@ trait TensorAlgebra {
   case class Translate(tensor: this.Tensor, offsets: Array[Long]) extends this.TensorExprOp[this.Tensor]
 
   /**
-   * Represents the expansion of a tensor in one or more dimensions bby duplication.
-   *
-   * As with all `TensorExprOp`, invarant assertions are not garuanteed to be performed.
-   * Use function `broadcast` to perform invariant checks.
+   * Represents the expansion of a tensor in one dimension by duplication.
    **/
-  case class Broadcast(tensor: this.Tensor, baseMagnitude: Array[Long]) extends this.TensorExprOp[this.Tensor]
+  case class Broadcast(tensor: this.Tensor, dimension: Dimension, magnitude: Long) extends this.TensorExprOp[this.Tensor]
 
   /**
    * Represents the re-indexing of a tensor: this changes the dimensionality without
@@ -162,20 +159,16 @@ trait TensorAlgebra {
     Free.liftF(Translate(tensor, offsets.reverse.dropWhile(_ == 0).reverse))
 
   /**
-   * Construct a tensor of higher dimensionality that the original by duplication
-   * in zero or more dimensions.
-   *
-   * Note that the dual operation would be to remove lower dimension(s) of magnitude
-   * 1. For example, turning a 1x1x3x3 tensor into a 3x3 tensor. This can be
-   * accomplished using the `pivot` operation.
+   * Construct a tensor by duplicating an existing tensor in one dimension.
    **/
-  def broadcast(tensor: this.Tensor, baseMagnitude: Array[Long]): this.TensorExpr[this.Tensor] = {
-    if(!baseMagnitude.map(_ > 0).fold(true)(_ && _)) throw new IllegalArgumentException("Base magntiude includes illegal values; each dimension must be > 0")
+  def broadcast(tensor: this.Tensor, dimension: Dimension, magnitude: Long): this.TensorExpr[this.Tensor] = {
+    if(magnitude < tensor.magnitude(dimension) || (tensor.magnitude.length < dimension && magnitude % tensor.magnitude(dimension) != 0))
+      throw new IllegalArgumentException("The input magnitude must be a positive multiple of the current magnitude")
 
-    if(baseMagnitude.map(_ == 1).fold(true)(_ && _))
+    if(tensor.magnitude.length <  dimension || magnitude == tensor.magnitude(dimension))
       Free.pure(tensor)
     else
-      Free.liftF(Broadcast(tensor, baseMagnitude))
+      Free.liftF(Broadcast(tensor, dimension, magnitude))
   }
 
   def reshape(tensor: this.Tensor, reshapedMagnitude: Array[Long]): this.TensorExpr[this.Tensor] = {
@@ -298,18 +291,24 @@ trait TensorAlgebra {
   def matmult2D(op1: this.Tensor, op2: this.Tensor): this.TensorExpr[this.Tensor] = {
     if(op1.magnitude(_X) != op2.magnitude(_Y)) throw new IllegalArgumentException("op1.magnitude(_X) must equal op2.magnitude(_Y)")
 
+    println(s"op1: ${op1}")
+    println(s"op2: ${op2}")
+
     for(e11  <- pivot(op1, _X, _Z);
-        e12  <- broadcast(e11, Array(op2.magnitude(_X)));
-        e13  <- pivot(e12, _Y, _Z);
-        e14  <- pivot(e13, _Z, _W);
+        _    =  println(s"op1 pivot: ${e11}");
+        e12  <- broadcast(e11, _X, op2.magnitude(_X));
+        _    =  println(s"op1 broadcast: ${e12}");
         e21  <- pivot(op2, _Y, _Z);
-        e22  <- broadcast(e21, Array(op1.magnitude(_Y)));
-        e23  <- pivot(e22, _X, _Y);
-        e24  <- pivot(e23, _Z, _W);
-        j0   <- join(_W, e14, e24);
+        e22  <- broadcast(e21, _Y, op1.magnitude(_Y));
+        _    =  println(s"op2 broadcast: ${e22}");
+        j0   <- join(_W, e12, e22);
+        _    =  println(s"join: ${j0}");
         j1   <- invert(j0);
+        _    =  println(s"inverted: ${j1}");
         r0   <- reduce(j1, 1, PRODUCT);
+        _    =  println(s"reduced by product: ${r0}");
         r1   <- reduce(r0, 1, SUM);
+        _    =  println(s"reduced by sum: ${r1}");
         res  <- invert(r1)) yield {
       res
     }

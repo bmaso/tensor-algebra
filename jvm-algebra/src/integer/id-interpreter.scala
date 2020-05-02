@@ -36,8 +36,11 @@ object IdInterpreter extends (TensorExprOp ~> Id) {
     case Translate(tensor: IntTensor, offsets: Array[Long]) =>
       TranslateTensor(tensor: IntTensor, offsets: Array[Long])
 
-    case Broadcast(tensor: IntTensor, baseMagnitude: Array[Long]) =>
-      BroadcastTensor(tensor, baseMagnitude)
+    case Broadcast(tensor: IntTensor, dimension: Dimension, _magnitude: Long) =>
+      val ret = BroadcastTensor(tensor, dimension, _magnitude)
+      println(s"....evaluating broadcast; yielding $ret")
+      ret
+
 
     case Slice(tensor: IntTensor, sliceRange: Array[(Long, Long)]) =>
       SliceTensor(tensor, sliceRange)
