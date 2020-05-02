@@ -1,8 +1,11 @@
 package bmaso.tensoralg.abstractions
 
+import scala.language.postfixOps
+
 import cats.free.Free
 
-import scala.math.min
+import scala.annotation.tailrec
+import scala.math.{max, min}
 
 /**
  * Each evaluator defines its own concrete tensor type, and defines its operations
@@ -162,10 +165,13 @@ trait TensorAlgebra {
    * Construct a tensor by duplicating an existing tensor in one dimension.
    **/
   def broadcast(tensor: this.Tensor, dimension: Dimension, magnitude: Long): this.TensorExpr[this.Tensor] = {
-    if(magnitude < tensor.magnitude(dimension) || (tensor.magnitude.length < dimension && magnitude % tensor.magnitude(dimension) != 0))
+    val effectiveTensorMag = Array.fill[Long](max(tensor.magnitude.length, dimension + 1))(1L)
+    Array.copy(tensor.magnitude, 0, effectiveTensorMag, 0, tensor.magnitude.length)
+
+    if(magnitude % effectiveTensorMag(dimension) != 0)
       throw new IllegalArgumentException("The input magnitude must be a positive multiple of the current magnitude")
 
-    if(tensor.magnitude.length <  dimension || magnitude == tensor.magnitude(dimension))
+    if(magnitude == effectiveTensorMag(dimension))
       Free.pure(tensor)
     else
       Free.liftF(Broadcast(tensor, dimension, magnitude))
@@ -291,24 +297,14 @@ trait TensorAlgebra {
   def matmult2D(op1: this.Tensor, op2: this.Tensor): this.TensorExpr[this.Tensor] = {
     if(op1.magnitude(_X) != op2.magnitude(_Y)) throw new IllegalArgumentException("op1.magnitude(_X) must equal op2.magnitude(_Y)")
 
-    println(s"op1: ${op1}")
-    println(s"op2: ${op2}")
-
     for(e11  <- pivot(op1, _X, _Z);
-        _    =  println(s"op1 pivot: ${e11}");
         e12  <- broadcast(e11, _X, op2.magnitude(_X));
-        _    =  println(s"op1 broadcast: ${e12}");
         e21  <- pivot(op2, _Y, _Z);
         e22  <- broadcast(e21, _Y, op1.magnitude(_Y));
-        _    =  println(s"op2 broadcast: ${e22}");
         j0   <- join(_W, e12, e22);
-        _    =  println(s"join: ${j0}");
         j1   <- invert(j0);
-        _    =  println(s"inverted: ${j1}");
         r0   <- reduce(j1, 1, PRODUCT);
-        _    =  println(s"reduced by product: ${r0}");
         r1   <- reduce(r0, 1, SUM);
-        _    =  println(s"reduced by sum: ${r1}");
         res  <- invert(r1)) yield {
       res
     }
@@ -324,57 +320,71 @@ trait TensorAlgebra {
    * much smaller. For example, magnitude 3 in each dimension can be used to
    * implement N-dimensional Jacobian operator.
    **/
-  // def crossCorrelate(tensor: this.Tensor, kernel: this.Tensor): this.TensorExpr[this.Tensor] = {
-  //   //...ensure tensor and kernel dimensionality match, and kernel is odd-sized...
-  //   if(tensor.order != kernel.order) throw new IllegalArgumentException("Tensor and kernel must have matching dimensionality")
-  //   if(kernel.elementSize % 2 != 1) throw new IllegalArgumentException("Kernel elementSize must be odd")
-  //
-  //   //...record the next 2 higher dimensions, which we will use to broadcast the
-  //   //   kernel and join translated copies of the tensor...
-  //   val d1 = tensor.order
-  //   val d2 = (d1 + 1).asInstanceOf[Dimension]
-  //
-  //   //...create "kernel.elementSize" tranlated versions of tensor and join
-  //   //   them in the next-higher dimension -- each 1x1x(kernel.elementSize) slice is
-  //   //   a copy of the neighborhood at each (x, y), backfilled with 0 values...
-  //   @tailrec
-  //   def rec(mags: List[Long]): List[List[Long]] = mags match {
-  //     case Nil => List()
-  //     case n :: rest =>
-  //       val children = rec(rest)
-  //       for(i <- -(n/2) to (n/2);
-  //           c <- children) yield { n +: c }
-  //   }
-  //
-  //   val translations: this.TensorExpr[this.Tensor] =
-  //     rec(kernel.magnitude).map(offsets => translate(tensor, offsets)) match {
-  //       case head :: rest => rest.foldLeft(head)({ case (accExpr, expr) => acc.flatMap(join(d1, accExpr, expr)) })
-  //     }
-  //
-  //   //...reshape and broadcast kernel to match shape of translations. That is:
-  //   //   * have extent only in dimension d1 (i.e., unitary in
-  //   //   all lower dimensions)
-  //   //   * Broadcast this to shape of source tensor in all lower dimensions...
-  //   val reshapedKernelMag = (0 to (kernel.order - 1)).map(_ => 1L).toArray :++ Array(kernel.elementSize)
-  //   val broadcastKernel = reshape(kernel, reshapedKernelMag)
-  //       .flatMap(broadcast(_, tensor.magnitude))
-  //
-  //   //...join translations and broadcast kernel. Must then invert dimensions so that
-  //   //   the resultant tensor is 2x(kernel.elementSize) in the _X and _Y dimensions
-  //   //   to prepare for reducing...
-  //   val joined =
-  //     for(ts <- translations;
-  //         bk <- broadcastKernel;
-  //         j  <- join(d2, ts, bk);
-  //         inverted <- invert(j)) yield { inverted }
-  //
-  //   //...reduce in the _X direction (magnitude 2) by multiplication, and the _Y direction
-  //   //   (magnitude kernel.elementSize) by addition. Invert the result to put
-  //   //   dimensions back into original tensor and kernel orientation...
-  //   joined.flatMap(reduce(_, PRODUCT))
-  //     .flatMap(reduce(_, SUM))
-  //     .flatMap(invert(_))
-  // }
+  def crossCorrelate(tensor: this.Tensor, kernel: this.Tensor): this.TensorExpr[this.Tensor] = {
+    //...ensure tensor and kernel dimensionality match, and kernel is odd-sized...
+    if(tensor.order != kernel.order) throw new IllegalArgumentException("Tensor and kernel must have matching dimensionality")
+    if(kernel.elementSize % 2 != 1) throw new IllegalArgumentException("Kernel elementSize must be odd")
+
+    //...record the next 2 higher dimensions, which we will use to broadcast the
+    //   kernel and join translated copies of the tensor...
+    val d1 = tensor.order.asInstanceOf[Dimension]
+    val d2 = (d1 + 1).asInstanceOf[Dimension]
+
+    //...create "kernel.elementSize" tranlated versions of tensor and join
+    //   them in the next-higher dimension -- each 1x1x(kernel.elementSize) slice is
+    //   a copy of the neighborhood at each (x, y), backfilled with 0 values...
+    def rec(mags: List[Long]): List[List[Long]] = mags match {
+      case n :: Nil =>
+        ((n/2) to -(n/2) by -1).toList.map(List(_))
+      case n :: rest =>
+        val children = rec(rest)
+        for(c <- children;
+            i <- ((n/2) to -(n/2) by -1) toList) yield { i +: c }
+      //...including the Nil case to keep compiler happy. This case cannot occur because kernel.order must be at least 1.
+      case Nil => List()
+    }
+
+    val translations: this.TensorExpr[this.Tensor] = {
+      val translationOffsets = rec(kernel.magnitude toList)
+      translationOffsets.map(offsets => translate(tensor, offsets toArray)) match {
+        case head :: rest => rest.foldLeft(head)({ case (accExpr, expr) =>
+          accExpr.flatMap(acc =>
+            expr.flatMap(t => join(d1, acc, t)))
+        })
+        //...including the Nil case to keep compiler happy. This case cannot occur because kernel.order must be at least 1.
+        case Nil => unit.map(_ => null.asInstanceOf[this.Tensor])
+      }
+    }
+
+    //...reshape and broadcast kernel to match shape of translations. That is:
+    //   * have extent only in dimension d1 (i.e., unitary in
+    //   all lower dimensions)
+    //   * Broadcast this to shape of source tensor in all lower dimensions...
+    val reshapedKernelMag = {
+      val m = Array.fill[Long](d1+1)(1L)
+      m(d1) = kernel.elementSize
+      m
+    }
+    val liftedKernel = reshape(kernel, reshapedKernelMag)
+    val broadcastKernel = (0 to (d1 - 1)).map(_.asInstanceOf[Dimension])
+        .foldLeft(liftedKernel)({ case (k, d) => k.flatMap(broadcast(_, d, tensor.magnitude(d))) })
+
+    //...join translations and broadcast kernel. Must then invert dimensions so that
+    //   the resultant tensor is 2x(kernel.elementSize) in the _X and _Y dimensions
+    //   to prepare for reducing...
+    val joined =
+      for(ts <- translations;
+          bk <- broadcastKernel;
+          j  <- join(d2, ts, bk);
+          inverted <- invert(j)) yield { inverted }
+
+    //...reduce in first dimension by multiplication, and then reduce one more dimension
+    //   (magnitude kernel.elementSize) by addition. Invert the result to put
+    //   dimensions back into original tensor orientation...
+    joined.flatMap(reduce(_, 1, PRODUCT))
+      .flatMap(reduce(_, 1, SUM))
+      .flatMap(invert(_))
+  }
 
   /**
    * N-dimensional convolution operation. Requirements:

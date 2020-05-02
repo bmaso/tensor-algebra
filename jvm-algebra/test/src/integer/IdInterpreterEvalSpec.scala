@@ -540,4 +540,131 @@ class IdInterpreterEvalSpec extends FlatSpec {
 
     succeed
   }
+
+  "cross-correlation of a 3x3 uniform tensor with a symmetric 3x3 kernel" should "yield a 3x3 tensor of the expected magnitude, order, elementSize and element values" in {
+    import IntTensorAlgebra._
+
+    val sourceArray = Array(
+      1, 1, 1,
+      1, 1, 1,
+      1, 1, 1,
+    )
+
+    val kernelArray = Array(
+      0, 1, 0,
+      1, 0, 1,
+      0, 1, 0,
+    )
+
+    val expected = Array(
+      2, 3, 2,
+      3, 4, 3,
+      2, 3, 2,
+    )
+
+    val resultsArray = Array.fill[Int](9)(0)
+
+    val expr =
+      for(tensor <- tensorFromArray(sourceArray, Array(3, 3));
+          kernel <- tensorFromArray(kernelArray, Array(3, 3));
+          cc     <- crossCorrelate(tensor, kernel);
+          _      <- copyTensorElementsToArray(cc, resultsArray, 0)) yield {
+        cc.magnitude should be (Array(3, 3))
+        cc.order should be (2)
+        cc.elementSize should be (9)
+
+        unit
+      }
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
+
+  "cross-correlation of a 3x3 uniform tensor with an asymmetric 3x3 kernel" should "yield a 3x3 tensor of the expected magnitude, order, elementSize and element values" in {
+    import IntTensorAlgebra._
+
+    val sourceArray = Array(
+      1, 1, 1,
+      1, 1, 1,
+      1, 1, 1,
+    )
+
+    val kernelArray = Array(
+      0, 1, 2,
+      2, 1, 0,
+      0, 0, 1,
+    )
+
+    val expected = Array(
+      2, 4, 3,
+      5, 7, 4,
+      4, 6, 4,
+    )
+
+    val resultsArray = Array.fill[Int](9)(0)
+
+    val expr =
+      for(tensor <- tensorFromArray(sourceArray, Array(3, 3));
+          kernel <- tensorFromArray(kernelArray, Array(3, 3));
+          cc     <- crossCorrelate(tensor, kernel);
+          _      <- copyTensorElementsToArray(cc, resultsArray, 0)) yield {
+        cc.magnitude should be (Array(3, 3))
+        cc.order should be (2)
+        cc.elementSize should be (9)
+
+        resultsArray should be (expected)
+
+        unit
+      }
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
+
+  "cross-correlation of a 3x3 non-uniform tensor with an asymmetric 3x3 kernel" should "yield a 3x3 tensor of the expected magnitude, order, elementSize and element values" in {
+    import IntTensorAlgebra._
+
+    val sourceArray = Array(
+      0, 1, 2,
+      3, 4, 5,
+      6, 7, 8,
+    )
+
+    val kernelArray = Array(
+      0, 1, 2,
+      2, 1, 0,
+      0, 0, 1,
+    )
+
+    val expected = Array(
+      4,  6,  4,
+      12, 23, 15,
+      17, 33, 27,
+    )
+
+    val resultsArray = Array.fill[Int](9)(0)
+
+    val expr =
+      for(tensor <- tensorFromArray(sourceArray, Array(3, 3));
+          kernel <- tensorFromArray(kernelArray, Array(3, 3));
+          cc     <- crossCorrelate(tensor, kernel);
+          _      <- copyTensorElementsToArray(cc, resultsArray, 0)) yield {
+        cc.magnitude should be (Array(3, 3))
+        cc.order should be (2)
+        cc.elementSize should be (9)
+
+        resultsArray should be (expected)
+
+        unit
+      }
+
+    val interp = IdInterpreter
+    val _ = interp.eval(expr)
+
+    succeed
+  }
 }

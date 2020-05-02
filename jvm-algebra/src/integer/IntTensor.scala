@@ -96,7 +96,7 @@ case class BroadcastTensor(tensor: IntTensor, dimension: Dimension, _magnitude: 
   override lazy val magnitude: Array[Long] = {
     if(_magnitude == 1) tensor.magnitude
     else {
-      val ret = Array.fill[Long](max(tensor.magnitude.length, dimension))(1L)
+      val ret = Array.fill[Long](max(tensor.magnitude.length, dimension+1))(1L)
       Array.copy(tensor.magnitude, 0, ret, 0, tensor.magnitude.length)
       ret(dimension) *= _magnitude
       ret
