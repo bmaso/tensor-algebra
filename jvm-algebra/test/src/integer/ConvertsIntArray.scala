@@ -5,6 +5,9 @@ trait ConvertsIntArray[T] {
 }
 
 object ConvertsIntArray {
+  implicit object ConvertsIntArrayToByte extends ConvertsIntArray[Byte] {
+    override def convertIntArray(array: Array[Int]) = array.map(_.toByte)
+  }
   implicit object ConvertsIntArrayToShort extends ConvertsIntArray[Short] {
     override def convertIntArray(array: Array[Int]) = array.map(_.toShort)
   }

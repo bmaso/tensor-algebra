@@ -31,6 +31,13 @@ trait TensorAlgebra[T] extends abstract_TensorAlgebra {
    }
 }
 
+object ByteTensorAlgebra extends TensorAlgebra[Byte] {
+  override lazy val SUM = JVMReduceFunction(t =>
+    (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum)
+  override lazy val PRODUCT = JVMReduceFunction(t =>
+    (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).foldLeft(1.toByte)({ case (acc, e) => (acc * e).toByte }))
+}
+
 object ShortTensorAlgebra extends TensorAlgebra[Short] {
   override lazy val SUM = JVMReduceFunction(t =>
     (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum)
