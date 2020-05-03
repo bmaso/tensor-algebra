@@ -11,9 +11,9 @@ class StackTensorSpec extends FlatSpec {
   "A stack of 2 3x2 tensors in the _Z dimension" should "have the expected magnitude, order, elementSize and elemetn values" in {
     import IntTensorAlgebra._
 
-    val t1 = IntArrayTensor((0 to 5) toArray, Array(3, 2), 0)
-    val t2 = IntArrayTensor((6 to 11) toArray, Array(3, 2), 0)
-    val stack = StackTensor(Array(t1, t2), _Z)
+    val t1 = ArrayTensor[Int]((0 to 5) toArray, Array(3, 2), 0)
+    val t2 = ArrayTensor[Int]((6 to 11) toArray, Array(3, 2), 0)
+    val stack = StackTensor[Int](Array(t1, t2), _Z)
 
     stack.magnitude should be (Array(3, 2, 2))
     stack.order should be (3)
@@ -30,9 +30,9 @@ class StackTensorSpec extends FlatSpec {
   }
 
   "A stack of 2 1x2x3 tensors in the _X direction" should "have the expected magnitude, order, elementSize and elemetn values" in {
-    val t1 = IntArrayTensor((0 to 5) toArray, Array(1, 2, 3), 0)
-    val t2 = IntArrayTensor((6 to 11) toArray, Array(1, 2, 3), 0)
-    val stack = StackTensor(Array(t1, t2), _X)
+    val t1 = ArrayTensor[Int]((0 to 5) toArray, Array(1, 2, 3), 0)
+    val t2 = ArrayTensor[Int]((6 to 11) toArray, Array(1, 2, 3), 0)
+    val stack = StackTensor[Int](Array(t1, t2), _X)
 
     stack.magnitude should be (Array(2, 2, 3))
     stack.order should be (3)

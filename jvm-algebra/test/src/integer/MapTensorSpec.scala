@@ -9,8 +9,8 @@ import bmaso.tensoralg.abstractions._
 
 class MapTensorSpec extends FlatSpec {
   "Mapping scalar tensor" should "construct a tensor with expected magnitude, order, elementSize and element values" in {
-    val arrayTensor = IntArrayTensor(Array[Int](5), Array(1), 0)
-    val mapTensor = MapTensor(arrayTensor, (_ * 2))
+    val arrayTensor = ArrayTensor[Int](Array[Int](5), Array(1), 0)
+    val mapTensor = MapTensor[Int](arrayTensor, (_ * 2))
 
     mapTensor.magnitude should be (Array(1))
     mapTensor.order should be (1)
@@ -20,8 +20,8 @@ class MapTensorSpec extends FlatSpec {
   }
 
   "Mapping a 2x3 tensor w/ _ * 2" should "construct a tensor with expected magnitude, order, elementSize and element values" in {
-    val arrayTensor = IntArrayTensor((0 to 5) toArray, Array(2, 3), 0)
-    val mapTensor = MapTensor(arrayTensor, (_ * 2))
+    val arrayTensor = ArrayTensor[Int]((0 to 5) toArray, Array(2, 3), 0)
+    val mapTensor = MapTensor[Int](arrayTensor, (_ * 2))
 
     mapTensor.magnitude should be (Array(2, 3))
     mapTensor.order should be (2)

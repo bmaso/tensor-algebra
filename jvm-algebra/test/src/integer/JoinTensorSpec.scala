@@ -9,9 +9,9 @@ import bmaso.tensoralg.abstractions._
 
 class JoinTensorSpec extends FlatSpec {
   "Joining 2 2x3 tensors in the _X dimension" should "construct a tensor with expected magnitude, order, elementSize and element values" in {
-    val t1 = IntArrayTensor((0 to 5) toArray, Array(2, 3), 0)
-    val t2 = IntArrayTensor((6 to 11) toArray, Array(2, 3), 0)
-    val join = JoinTensor(Array(t1, t2), _X)
+    val t1 = ArrayTensor[Int]((0 to 5) toArray, Array(2, 3), 0)
+    val t2 = ArrayTensor[Int]((6 to 11) toArray, Array(2, 3), 0)
+    val join = JoinTensor[Int](Array(t1, t2), _X)
 
     join.magnitude should be (Array(4, 3))
     join.order should be (2)
@@ -32,9 +32,9 @@ class JoinTensorSpec extends FlatSpec {
   }
 
   "Joining 2 2x3 tensors in the _Y dimension" should "construct a tensor with expected magnitude, order, elementSize and element values" in {
-    val t1 = IntArrayTensor((0 to 5) toArray, Array(2, 3), 0)
-    val t2 = IntArrayTensor((6 to 11) toArray, Array(2, 3), 0)
-    val join = JoinTensor(Array(t1, t2), _Y)
+    val t1 = ArrayTensor[Int]((0 to 5) toArray, Array(2, 3), 0)
+    val t2 = ArrayTensor[Int]((6 to 11) toArray, Array(2, 3), 0)
+    val join = JoinTensor[Int](Array(t1, t2), _Y)
 
     join.magnitude should be (Array(2, 6))
     join.order should be (2)

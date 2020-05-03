@@ -7,7 +7,7 @@ import org.scalatest.{FlatSpec, Matchers}, Matchers._
 
 class PivotTensorSpec extends FlatSpec {
   "A tensor constructed as a (_X, _Y) pivot of a 3x2 tensor" should "have the expected magnitude, order, elementSize and element values" in {
-    val arrayTensor = IntArrayTensor((0 to 5) toArray, Array(3, 2), 0)
+    val arrayTensor = ArrayTensor[Int]((0 to 5) toArray, Array(3, 2), 0)
     val pivot = PivotTensor(arrayTensor, _X, _Y)
 
     pivot.magnitude should be (Array(2, 3))
@@ -23,7 +23,7 @@ class PivotTensorSpec extends FlatSpec {
   }
 
   "A tensor constructed as a (_X, _Z) pivot of a 3x2 tensor" should "have the expected magnitude, order, elementSize and element values" in {
-    val arrayTensor = IntArrayTensor((0 to 5) toArray, Array(3, 2), 0)
+    val arrayTensor = ArrayTensor[Int]((0 to 5) toArray, Array(3, 2), 0)
     val pivot = PivotTensor(arrayTensor, _X, _Z)
 
     pivot.magnitude should be (Array(1, 2, 3))
@@ -39,7 +39,7 @@ class PivotTensorSpec extends FlatSpec {
   }
 
   "A tensor constructed as a (_X, _X) pivot of a 3x2 tensor" should "be value-wise identical to the original" in {
-    val arrayTensor = IntArrayTensor((0 to 5) toArray, Array(3, 2), 0)
+    val arrayTensor = ArrayTensor[Int]((0 to 5) toArray, Array(3, 2), 0)
     val pivot = PivotTensor(arrayTensor, _X, _X)
 
     pivot.magnitude should be (arrayTensor.magnitude)

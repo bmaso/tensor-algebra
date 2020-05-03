@@ -9,8 +9,8 @@ import bmaso.tensoralg.abstractions._
 
 class TranslateTensorSpec extends FlatSpec {
   "A translated 3x3 tensor" should "have the expected magnitude, order, elementSize and element values" in {
-    val inputTensor = IntArrayTensor((1 to 9) toArray, Array(3, 3), 0)
-    val translation = TranslateTensor(inputTensor, Array(1, 1))
+    val inputTensor = ArrayTensor[Int]((1 to 9) toArray, Array(3, 3), 0)
+    val translation = TranslateTensor(inputTensor, Array(1, 1), 0)
 
     translation.magnitude should be (Array(3, 3))
     translation.order should be (2)
@@ -28,8 +28,8 @@ class TranslateTensorSpec extends FlatSpec {
   }
 
   "A translated 3x3 tensor with a negative offset" should "have the expected magnitude, order, elementSize and element values" in {
-    val inputTensor = IntArrayTensor((1 to 9) toArray, Array(3, 3), 0)
-    val translation = TranslateTensor(inputTensor, Array(-1, 1))
+    val inputTensor = ArrayTensor[Int]((1 to 9) toArray, Array(3, 3), 0)
+    val translation = TranslateTensor(inputTensor, Array(-1, 1), 0)
 
     translation.magnitude should be (Array(3, 3))
     translation.order should be (2)
@@ -47,8 +47,8 @@ class TranslateTensorSpec extends FlatSpec {
   }
 
   "A translated 3x3 tensor with offset only the _X dimension" should "have the expected magnitude, order, elementSize and element values" in {
-    val inputTensor = IntArrayTensor((1 to 9) toArray, Array(3, 3), 0)
-    val translation = TranslateTensor(inputTensor, Array(1))
+    val inputTensor = ArrayTensor[Int]((1 to 9) toArray, Array(3, 3), 0)
+    val translation = TranslateTensor(inputTensor, Array(1), 0)
 
     translation.magnitude should be (Array(3, 3))
     translation.order should be (2)
@@ -66,8 +66,8 @@ class TranslateTensorSpec extends FlatSpec {
   }
 
   it should "ignore additional zero-valued index elements" in {
-    val inputTensor = IntArrayTensor((1 to 9) toArray, Array(3, 3), 0)
-    val translation = TranslateTensor(inputTensor, Array(1, 1))
+    val inputTensor = ArrayTensor[Int]((1 to 9) toArray, Array(3, 3), 0)
+    val translation = TranslateTensor(inputTensor, Array(1, 1), 0)
 
     translation.valueAt(Array(0, 0, 0, 0)) should be (0)
     translation.valueAt(Array(0, 1, 0, 0)) should be (0)
@@ -81,8 +81,8 @@ class TranslateTensorSpec extends FlatSpec {
   }
 
   "A 3x3x3 translation in the _X and _Z dimensions" should "have the expected magnitude, order, elementSize and element values" in {
-    val inputTensor = IntArrayTensor((1 to 27) toArray, Array(3, 3, 3), 0)
-    val translation = TranslateTensor(inputTensor, Array(1, 0, 1))
+    val inputTensor = ArrayTensor[Int]((1 to 27) toArray, Array(3, 3, 3), 0)
+    val translation = TranslateTensor(inputTensor, Array(1, 0, 1), 0)
 
     translation.magnitude should be (Array(3, 3, 3))
     translation.order should be (3)
@@ -126,8 +126,8 @@ class TranslateTensorSpec extends FlatSpec {
   }
 
   "A 3x3 tensor translated in the _Z dimension" should "have the expected magnitude, order, elementSize and element values" in {
-    val inputTensor = IntArrayTensor((1 to 9) toArray, Array(3, 3), 0)
-    val translation = TranslateTensor(inputTensor, Array(0, 0, 1))
+    val inputTensor = ArrayTensor[Int]((1 to 9) toArray, Array(3, 3), 0)
+    val translation = TranslateTensor(inputTensor, Array(0, 0, 1), 0)
 
     translation.magnitude should be (Array(3, 3, 2))
     translation.order should be (3)

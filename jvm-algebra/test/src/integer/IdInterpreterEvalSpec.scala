@@ -22,9 +22,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
     val expr = IntTensorAlgebra.tensorFromArray(inputArray, Array(5, 5))
         .flatMap(tensor => IntTensorAlgebra.copyTensorElementsToArray(tensor, outputArray))
 
-    val interp = IdInterpreter
-
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     outputArray should be (inputArray)
   }
@@ -39,8 +38,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
       .flatMap(translate(_, Array(1, 1)))
       .flatMap(copyTensorElementsToArray(_, outputArray))
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     outputArray should be (Array(0, 0, 0,
                                  0, 1, 2,
@@ -64,8 +63,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -88,8 +87,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -101,8 +100,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
       val expr = tensorFromArray((0 to 63) toArray, Array(4, 4, 4))
         .flatMap(slice(_, Array((1, 2), (1, 5), (1, 2))))
 
-      val interp = IdInterpreter
-      val _ = interp.eval(expr)
+      val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+      val _ = expr.foldMap(interp)
 
       succeed
     }
@@ -120,8 +119,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
   }
 
   "Reshaping a tensor" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
@@ -145,8 +144,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
   }
 
   "Reshaping a tensor with illegal magnitude values" should "not be allowed" in {
@@ -156,8 +155,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
       val expr = tensorFromArray((0 to 63) toArray, Array(4, 4, 4))
         .flatMap(reshape(_, Array(16, 0, 4)))
 
-      val interp = IdInterpreter
-      val _ = interp.eval(expr)
+      val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+      val _ = expr.foldMap(interp)
 
       succeed
     }
@@ -170,8 +169,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
       val expr = tensorFromArray((0 to 63) toArray, Array(4, 4, 4))
         .flatMap(reshape(_, Array(5, 5, 3)))
 
-      val interp = IdInterpreter
-      val _ = interp.eval(expr)
+      val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+      val _ = expr.foldMap(interp)
 
       succeed
     }
@@ -203,8 +202,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -216,8 +215,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
       val expr = tensorFromArray((0 to 11) toArray, Array(2, 3, 2))
         .flatMap(reverse(_, -1.asInstanceOf[Dimension]))
 
-      val interp = IdInterpreter
-      val _ = interp.eval(expr)
+      val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+      val _ = expr.foldMap(interp)
 
       succeed
     }
@@ -243,8 +242,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -256,8 +255,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
       val expr = tensorFromArray((0 to 5) toArray, Array(3, 2, 2))
         .flatMap(pivot(_, -1.asInstanceOf[Dimension], -1.asInstanceOf[Dimension]))
 
-      val interp = IdInterpreter
-      val _ = interp.eval(expr)
+      val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+      val _ = expr.foldMap(interp)
 
       succeed
     }
@@ -271,7 +270,7 @@ class IdInterpreterEvalSpec extends FlatSpec {
         tensorFromArray((6 to 11) to Array, Array(3, 2))
           .flatMap(t2 => join(_Z, t1, t2)))
       .flatMap({t =>
-        t.isInstanceOf[StackTensor] should be (true)
+        t.isInstanceOf[StackTensor[Int]] should be (true)
 
         t.magnitude should be (Array(3, 2, 2))
         t.order should be (3)
@@ -293,8 +292,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -307,7 +306,7 @@ class IdInterpreterEvalSpec extends FlatSpec {
         tensorFromArray((6 to 11) to Array, Array(3, 2))
           .flatMap(t2 => join(_Y, t1, t2)))
       .flatMap({t =>
-        t.isInstanceOf[JoinTensor] should be (true)
+        t.isInstanceOf[JoinTensor[Int]] should be (true)
 
         t.magnitude should be (Array(3, 4))
         t.order should be (2)
@@ -329,8 +328,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -355,8 +354,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
           unit()
         })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -364,7 +363,7 @@ class IdInterpreterEvalSpec extends FlatSpec {
   "Reducing a 6x5x4x3 tensor in 2 orders" should "yield a tensor with expected magnitude, order, elementSize, and element values" in {
     import IntTensorAlgebra._
 
-    def sum(t: IntTensor): Int = (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum
+    def sum(t: JVMTensor[Int]): Int = (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum
 
     val expr = tensorFromArray((0 to 359).map(_ => 1) toArray, Array(6, 5, 4, 3))
         .flatMap(reduce(_, 2)(sum))
@@ -389,8 +388,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
           unit()
         })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -410,8 +409,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
           unit()
         })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -436,8 +435,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
           unit()
         })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -481,8 +480,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
           unit()
         })
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -507,8 +506,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       }
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -535,8 +534,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit()
       }
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -576,8 +575,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit
       }
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -619,8 +618,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit
       }
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }
@@ -662,8 +661,8 @@ class IdInterpreterEvalSpec extends FlatSpec {
         unit
       }
 
-    val interp = IdInterpreter
-    val _ = interp.eval(expr)
+    val interp = IdInterpreterBuilder.interpreterOf(IntTensorAlgebra)
+    val _ = expr.foldMap(interp)
 
     succeed
   }

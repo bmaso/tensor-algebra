@@ -10,7 +10,7 @@ import bmaso.tensoralg.abstractions._
 
 class SliceTensorSpec extends FlatSpec{
   "A 2x2x2 slice of a 4x4x4 tensor" should "have the right magnitude, order, elementSize, and element values" in {
-    val arrayTensor = IntArrayTensor((0 to 63) toArray, Array(4, 4, 4), 0)
+    val arrayTensor = ArrayTensor[Int]((0 to 63) toArray, Array(4, 4, 4), 0)
     val slice = SliceTensor(arrayTensor, Array((1, 2), (1, 2), (1, 2)))
 
     slice.magnitude should be (Array(2, 2, 2))
@@ -23,7 +23,7 @@ class SliceTensorSpec extends FlatSpec{
   }
 
   "A 2x2x1 slice of a 4x4x4 tensor" should "have the right magnitude, order, elementSize, and element values" in {
-    val arrayTensor = IntArrayTensor((0 to 63) toArray, Array(4, 4, 4), 0)
+    val arrayTensor = ArrayTensor[Int]((0 to 63) toArray, Array(4, 4, 4), 0)
     val slice = SliceTensor(arrayTensor, Array((1, 2), (1, 2), (1, 1)))
 
     slice.magnitude should be (Array(2, 2))
@@ -37,7 +37,7 @@ class SliceTensorSpec extends FlatSpec{
   }
 
   "A 2x1x2 slice of a 4x4x4 tensor" should "have the right magnitude, order, elementSize, and element values" in {
-    val arrayTensor = IntArrayTensor((0 to 63) toArray, Array(4, 4, 4), 0)
+    val arrayTensor = ArrayTensor[Int]((0 to 63) toArray, Array(4, 4, 4), 0)
     val slice = SliceTensor(arrayTensor, Array((1, 2), (1, 1), (1, 2)))
 
     slice.magnitude should be (Array(2, 1, 2))

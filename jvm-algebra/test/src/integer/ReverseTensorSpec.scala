@@ -7,7 +7,7 @@ import org.scalatest.{FlatSpec, Matchers}, Matchers._
 
 class ReverseTensorSpec extends FlatSpec {
   "A reverse tensor constructed from a 1D source tensor" should "have the expected magntude, order, elementSize and element values" in {
-    val sourceTensor = IntArrayTensor((0 to 5) toArray, Array(6), 0)
+    val sourceTensor = ArrayTensor[Int]((0 to 5) toArray, Array(6), 0)
     val reversed = ReverseTensor(sourceTensor, _X)
 
     reversed.order should be (1)
@@ -23,7 +23,7 @@ class ReverseTensorSpec extends FlatSpec {
   }
 
   "Reversing a tensor in a unitary dimension" should "have no effect" in {
-    val sourceTensor = IntArrayTensor((0 to 5) toArray, Array(6, 1), 0)
+    val sourceTensor = ArrayTensor[Int]((0 to 5) toArray, Array(6, 1), 0)
     val reversed = ReverseTensor(sourceTensor, _Y)
 
     reversed.order should be (2)
@@ -39,7 +39,7 @@ class ReverseTensorSpec extends FlatSpec {
   }
 
   "Reversing a tensor in a higher dimension than the order in  a 3x3 tensor" should "have no effect" in {
-    val sourceTensor = IntArrayTensor((0 to 8) toArray, Array(3, 3), 0)
+    val sourceTensor = ArrayTensor[Int]((0 to 8) toArray, Array(3, 3), 0)
     val reversed = ReverseTensor(sourceTensor, _T)
 
     reversed.order should be (2)
@@ -52,7 +52,7 @@ class ReverseTensorSpec extends FlatSpec {
   }
 
   "A tensor constructed by reversing an order-3 tensor in the _Y dimension" should "have the expected magnitude, order, elementSize and elementValues" in {
-    val sourceTensor = IntArrayTensor((0 to 11) toArray, Array(2, 3, 2), 0)
+    val sourceTensor = ArrayTensor[Int]((0 to 11) toArray, Array(2, 3, 2), 0)
     val reversed = ReverseTensor(sourceTensor, _Y)
 
     reversed.order should be (3)

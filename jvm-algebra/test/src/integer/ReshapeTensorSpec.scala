@@ -7,7 +7,7 @@ import org.scalatest.{FlatSpec, Matchers}, Matchers._
 
 class ReshapeTensorSpec extends FlatSpec {
   "A 3x4x5 ReshapeTensor made from a 10x2x3 tensor" should "have the expected magnitude, order, elementSize and element values" in {
-    val arrayTensor = IntArrayTensor((0 to 59) toArray, Array(10, 2, 3), 0)
+    val arrayTensor = ArrayTensor[Int]((0 to 59) toArray, Array(10, 2, 3), 0)
     val reshaped = ReshapeTensor(arrayTensor, Array(3, 4, 5))
 
     reshaped.magnitude should be (Array(3, 4, 5))
@@ -22,7 +22,7 @@ class ReshapeTensorSpec extends FlatSpec {
   }
 
   "Providing additional dimension index 0 values when getting values from a ReshapedTensor" should "yield the same as not providing those values" in {
-    val arrayTensor = IntArrayTensor((0 to 59) toArray, Array(10, 2, 3), 0)
+    val arrayTensor = ArrayTensor[Int]((0 to 59) toArray, Array(10, 2, 3), 0)
     val reshaped = ReshapeTensor(arrayTensor, Array(3, 4, 5))
 
     reshaped.valueAt(Array(0, 0, 0)) should be (reshaped.valueAt(Array(0, 0, 0, 0)))

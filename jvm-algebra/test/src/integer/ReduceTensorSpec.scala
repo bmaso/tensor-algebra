@@ -7,13 +7,13 @@ import org.scalatest.{FlatSpec, Matchers}, Matchers._
 
 class ReduceTensorSpec extends FlatSpec {
 
-  def sum(t: IntTensor): Int = (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum
+  def sum(t: JVMTensor[Int]): Int = (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum
 
   "a 3x3 tensor reduced in 2 orders" should "yield a scalar tensor" in {
     import IntTensorAlgebra._
 
-    val arrayTensor = IntArrayTensor((0 to 8).map(_ => 1) toArray, Array(3, 3), 0)
-    val reduce = ReduceTensor(arrayTensor, 2, sum)
+    val arrayTensor = ArrayTensor[Int]((0 to 8).map(_ => 1) toArray, Array(3, 3), 0)
+    val reduce = ReduceTensor[Int](arrayTensor, 2, sum)
 
     reduce.magnitude should be (Array(1))
     reduce.order should be (1)
@@ -25,8 +25,8 @@ class ReduceTensorSpec extends FlatSpec {
   "a 3x3 tensor reduced in 1 order" should "yield a 1-D tensor with magnitude, order, elementSize and element values as expected" in {
     import IntTensorAlgebra._
 
-    val arrayTensor = IntArrayTensor((0 to 8) toArray, Array(3, 3), 0)
-    val reduce = ReduceTensor(arrayTensor, 1, sum)
+    val arrayTensor = ArrayTensor[Int]((0 to 8) toArray, Array(3, 3), 0)
+    val reduce = ReduceTensor[Int](arrayTensor, 1, sum)
 
     reduce.magnitude should be (Array(3))
     reduce.order should be (1)
@@ -40,8 +40,8 @@ class ReduceTensorSpec extends FlatSpec {
   "a 3x3 tensor reduced in 0 orders" should "yield a 2-D tensor with magnitude, order, elementSize and element values as expected" in {
     import IntTensorAlgebra._
 
-    val arrayTensor = IntArrayTensor((0 to 8) toArray, Array(3, 3), 0)
-    val reduce = ReduceTensor(arrayTensor, 0, (t => t.valueAt(Array(0)) * 2))
+    val arrayTensor = ArrayTensor[Int]((0 to 8) toArray, Array(3, 3), 0)
+    val reduce = ReduceTensor[Int](arrayTensor, 0, (t => t.valueAt(Array(0)) * 2))
 
     reduce.magnitude should be (Array(3, 3))
     reduce.order should be (2)
@@ -61,8 +61,8 @@ class ReduceTensorSpec extends FlatSpec {
   "a 6x5x4x3 tensor reduced in 2 orders" should "yield a 4x3 tensor with magnitude, order, elementSize and element values as expected" in {
     import IntTensorAlgebra._
 
-    val arrayTensor = IntArrayTensor((0 to 359).map(_ => 1) toArray, Array(6, 5, 4, 3), 0)
-    val reduce = ReduceTensor(arrayTensor, 2, sum)
+    val arrayTensor = ArrayTensor[Int]((0 to 359).map(_ => 1) toArray, Array(6, 5, 4, 3), 0)
+    val reduce = ReduceTensor[Int](arrayTensor, 2, sum)
 
     reduce.magnitude should be (Array(4, 3))
     reduce.order should be (2)
