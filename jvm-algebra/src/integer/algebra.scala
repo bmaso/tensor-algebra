@@ -58,3 +58,17 @@ object LongTensorAlgebra extends TensorAlgebra[Long] {
   override lazy val PRODUCT = JVMReduceFunction(t =>
     (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).foldLeft(1L)(_ * _))
 }
+
+object FloatTensorAlgebra extends TensorAlgebra[Float] {
+  override lazy val SUM = JVMReduceFunction(t =>
+    (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum)
+  override lazy val PRODUCT = JVMReduceFunction(t =>
+    (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).foldLeft(1f)(_ * _))
+}
+
+object DoubleTensorAlgebra extends TensorAlgebra[Double] {
+  override lazy val SUM = JVMReduceFunction(t =>
+    (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum)
+  override lazy val PRODUCT = JVMReduceFunction(t =>
+    (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).foldLeft(1.0)(_ * _))
+}

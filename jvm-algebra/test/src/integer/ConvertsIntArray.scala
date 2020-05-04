@@ -17,4 +17,10 @@ object ConvertsIntArray {
   implicit object ConvertsIntArrayToLong extends ConvertsIntArray[Long] {
     override def convertIntArray(array: Array[Int]) = array.map(_.toLong)
   }
+  implicit object ConvertsIntArrayToFloat extends ConvertsIntArray[Float] {
+    override def convertIntArray(array: Array[Int]) = array.map(_.toFloat)
+  }
+  implicit object ConvertsIntArrayToDouble extends ConvertsIntArray[Double] {
+    override def convertIntArray(array: Array[Int]) = array.map(_.toDouble)
+  }
 }
