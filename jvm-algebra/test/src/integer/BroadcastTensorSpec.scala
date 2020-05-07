@@ -8,19 +8,7 @@ import org.scalatest.{FlatSpec, Matchers}, Matchers._
 
 import bmaso.tensoralg.abstractions.{TensorAlgebra => abstract_TensorAlgebra, _}
 
-abstract class BroadcastTensorSpecBase[T: Numeric: ClassTag: ConvertsIntArray] extends FlatSpec {
-  val numeric: Numeric[T] = implicitly[Numeric[T]]
-
-  implicit def canConvertToInt(t: T) = new {
-    def asI: Int = numeric.toInt(t)
-  }
-
-  implicit def canConvertIntArray(array: Array[Int]) = new {
-    def asTArray: Array[T] = {
-      implicitly[ConvertsIntArray[T]].convertIntArray(array)
-    }
-  }
-
+abstract class BroadcastTensorSpecBase[T: Numeric: ClassTag: ConvertsIntArray] extends TensorFlatSpecBase[T] {
   "A 1x2x3 tensor broadcast by 2 in _X" should "yield a 2x2x3 tensor with the expected magnitude, order, elementSize and element values" in {
     val arrayTensor = ArrayTensor[T](((0 to 5) toArray).asTArray, Array(1, 2, 3), 0)
     val broadcastTensor = BroadcastTensor(arrayTensor, _X, 2)

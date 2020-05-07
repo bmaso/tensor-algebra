@@ -8,19 +8,7 @@ import org.scalatest.{FlatSpec, Matchers}, Matchers._
 
 import bmaso.tensoralg.abstractions._
 
-abstract class JoinTensorSpecBase[T: Numeric: ClassTag: ConvertsIntArray] extends FlatSpec {
-  val numeric: Numeric[T] = implicitly[Numeric[T]]
-
-  implicit def canConvertToInt(t: T) = new {
-    def asI: Int = numeric.toInt(t)
-  }
-
-  implicit def canConvertIntArray(array: Array[Int]) = new {
-    def asTArray: Array[T] = {
-      implicitly[ConvertsIntArray[T]].convertIntArray(array)
-    }
-  }
-
+abstract class JoinTensorSpecBase[T: Numeric: ClassTag: ConvertsIntArray] extends TensorFlatSpecBase[T] {
   "Joining 2 2x3 tensors in the _X dimension" should "construct a tensor with expected magnitude, order, elementSize and element values" in {
     val t1 = ArrayTensor[T]((0 to 5).toArray.asTArray, Array(2, 3), 0)
     val t2 = ArrayTensor[T]((6 to 11).toArray.asTArray, Array(2, 3), 0)
