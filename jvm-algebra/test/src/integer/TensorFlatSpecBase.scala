@@ -11,17 +11,19 @@ import org.scalatest.FlatSpec
  * parameterized by `Byte`, `Short`, `Int`, `Long`, `Float` and
  * `Double` tesnor element values. See, for example, `BroadcastTensorSpecBase and
  * the various subtypes.
- **/ 
-abstract class TensorFlatSpecBase[T: Numeric: ClassTag: ConvertsIntArray] extends FlatSpec {
+ **/
+abstract class TensorFlatSpecBase[T: Numeric: ClassTag: ConvertsInt] extends FlatSpec {
   val numeric: Numeric[T] = implicitly[Numeric[T]]
 
   implicit def canConvertToInt(t: T) = new {
     def asI: Int = numeric.toInt(t)
   }
 
+  implicit def canConvertFromInt(i: Int) = new {
+    def asT: T = implicitly[ConvertsInt[T]].convertInt(i)
+  }
+
   implicit def canConvertIntArray(array: Array[Int]) = new {
-    def asTArray: Array[T] = {
-      implicitly[ConvertsIntArray[T]].convertIntArray(array)
-    }
+    def asTArray: Array[T] = implicitly[ConvertsInt[T]].convertIntArray(array)
   }
 }

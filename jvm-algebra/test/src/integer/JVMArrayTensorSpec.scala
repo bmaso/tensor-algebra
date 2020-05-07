@@ -6,7 +6,7 @@ import scala.reflect.ClassTag
 import bmaso.tensoralg.abstractions._
 import org.scalatest.{FlatSpec, Matchers}, Matchers._
 
-abstract class JVMArrayTensorSpecBase[T: Numeric: ClassTag: ConvertsIntArray] extends TensorFlatSpecBase[T] {
+abstract class JVMArrayTensorSpecBase[T: Numeric: ClassTag: ConvertsInt] extends TensorFlatSpecBase[T] {
   "A 5x5 tensor" should "have expected magnitude, order, and elementSize" in {
     val t = ArrayTensor[T](((0 to 24) toArray).asTArray, Array(5, 5), 0)
     t.order should be (2)
