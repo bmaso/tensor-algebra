@@ -6,7 +6,7 @@ import scala.reflect.ClassTag
 import bmaso.tensoralg.abstractions._
 import org.scalatest.{FlatSpec, Matchers}, Matchers._
 
-class ReduceTensorSpec[T: Numeric: ClassTag: ConvertsInt] extends TensorFlatSpecBase[T] {
+class ReduceTensorSpecBase[T: Numeric: ClassTag: ConvertsInt] extends TensorFlatSpecBase[T] {
 
   def sum(t: JVMTensor[T]): T = (0 to (t.elementSize.toInt - 1)).map(t.valueAt1D(_)).sum
 
@@ -53,25 +53,26 @@ class ReduceTensorSpec[T: Numeric: ClassTag: ConvertsInt] extends TensorFlatSpec
     reduce.valueAt(Array(2, 2)).asI should be (16)
   }
 
-  "a 4x3x4x3 tensor reduced in 2 orders" should "yield a 4x3 tensor with magnitude, order, elementSize and element values as expected" in {
-    val arrayTensor = ArrayTensor[T]((0 to 127).map(_ => 1).toArray.asTArray, Array(4, 3, 4, 3), 0)
+  "a 2x3x4x3 tensor reduced in 2 orders" should "yield a 4x3 tensor with magnitude, order, elementSize and element values as expected" in {
+    val arrayTensor = ArrayTensor[T]((0 to 71).map(_ => 1).toArray.asTArray, Array(2, 3, 4, 3), 0)
     val reduce = ReduceTensor[T](arrayTensor, 2, sum)
 
     reduce.magnitude should be (Array(4, 3))
     reduce.order should be (2)
     reduce.elementSize should be (12)
 
-    reduce.valueAt(Array(0, 0)) should be (12)
-    reduce.valueAt(Array(1, 0)) should be (12)
-    reduce.valueAt(Array(2, 0)) should be (12)
-    reduce.valueAt(Array(3, 0)) should be (12)
-    reduce.valueAt(Array(0, 1)) should be (12)
-    reduce.valueAt(Array(1, 1)) should be (12)
-    reduce.valueAt(Array(2, 1)) should be (12)
-    reduce.valueAt(Array(3, 1)) should be (12)
-    reduce.valueAt(Array(0, 2)) should be (12)
-    reduce.valueAt(Array(1, 2)) should be (12)
-    reduce.valueAt(Array(2, 2)) should be (12)
-    reduce.valueAt(Array(3, 2)) should be (12)
+    reduce.valueAt(Array(0, 0)) should be (6)
+    reduce.valueAt(Array(1, 0)) should be (6)
+    reduce.valueAt(Array(0, 1)) should be (6)
+    reduce.valueAt(Array(1, 1)) should be (6)
+    reduce.valueAt(Array(0, 2)) should be (6)
+    reduce.valueAt(Array(1, 2)) should be (6)
   }
 }
+
+class ByteReduceTensorSpec extends ReduceTensorSpecBase[Byte]
+class ShortReduceTensorSpec extends ReduceTensorSpecBase[Short]
+class IntReduceTensorSpec extends ReduceTensorSpecBase[Int]
+class LongReduceTensorSpec extends ReduceTensorSpecBase[Long]
+class FloatReduceTensorSpec extends ReduceTensorSpecBase[Float]
+class DoubleReduceTensorSpec extends ReduceTensorSpecBase[Double]
