@@ -6,9 +6,9 @@ import scala.math.max
 
 import bmaso.tensoralg.abstractions.{Tensor => abstract_Tensor, Dimension}
 
-sealed trait IntTensor extends abstract_Tensor {
-  def valueAt(index: Array[Long], startingAt: Long = 0): Int
-  def valueAt1D(_1dIdx: Long): Int = {
+sealed trait JVMTensor[T] extends abstract_Tensor {
+  def valueAt(index: Array[Long], startingAt: Long = 0): T
+  def valueAt1D(_1dIdx: Long): T = {
     var __1dIdx = _1dIdx
     val idx = Array.fill[Long](order)(0)
     for(d <- 0 to (order - 1);
@@ -28,12 +28,12 @@ sealed trait IntTensor extends abstract_Tensor {
 /**
  * A tensor whose element values are taken from a backing array of values.
  **/
-case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], offset: Int)
-    extends IntTensor {
+case class ArrayTensor[T](arr: Array[T], override val magnitude: Array[Long], offset: Int)
+    extends JVMTensor[T] {
   if(arr.length - offset < this.elementSize) throw new IllegalArgumentException("Backing array size is too small for elementSize")
   if(this.elementSize >= Int.MaxValue) throw new IllegalArgumentException("Magnitude is too large for this tensor implementation; elementSize must be < Int.MaxValue")
 
-  override def valueAt(index: Array[Long], startingAt: Long = 0L): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0L): T = {
     for(ii <- startingAt.toInt to (index.length - 1)) if(index(ii) < 0L || (index(ii) > 0L && ((ii - startingAt.toInt) >= magnitude.length || index(ii) >= magnitude(ii - startingAt.toInt))))
       throw new IllegalArgumentException("Index value is out of range")
     var idx = 0L
@@ -44,9 +44,6 @@ case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], 
     }
     arr((idx + offset).toInt)
   }
-
-  def copySlice(tensor: IntTensor, sliceRange: Array[(Long, Long)]): Unit = ???
-  def setValueAt(v: Int, index: Array[Long]): Unit = ???
 }
 
 /**
@@ -54,8 +51,8 @@ case class IntArrayTensor(arr: Array[Int], override val magnitude: Array[Long], 
  * positive offsets cause the source tensor to be "truncated" in that
  * dimension.
  **/
-case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
-    extends IntTensor {
+case class TranslateTensor[T](tensor: JVMTensor[T], offsets: Array[Long], backfillValue: T)
+    extends JVMTensor[T] {
   /*
    * A couple odd cases to consider: offsets is longer than source magnitude,
    * offsets is shorter than source magnitude. The expected case is that
@@ -73,14 +70,14 @@ case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
     Array.copy(tensor.magnitude, 0, mag, 0, tensor.magnitude.length)
     mag
   }
-  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0): T = {
     val translatedIndex = Array.tabulate[Long](order)((n: Int) => index(startingAt.toInt + n))
     var oob = false
     for(d <- 0 to order - 1) {
       translatedIndex(d) -= (if (d >= offsets.length) 0 else (offsets(d).toInt))
       if(translatedIndex(d) < 0 || translatedIndex(d) >= magnitude(d)) oob = true
     }
-    if(oob) 0 else tensor.valueAt(Array.copyAs[Long](translatedIndex, translatedIndex.length))
+    if(oob) backfillValue else tensor.valueAt(Array.copyAs[Long](translatedIndex, translatedIndex.length))
   }
 }
 
@@ -91,8 +88,8 @@ case class TranslateTensor(tensor: IntTensor, offsets: Array[Long])
  * in same dimension. Code which constructs this instance must make assure
  * this invariant.
  **/
-case class BroadcastTensor(tensor: IntTensor, dimension: Dimension, _magnitude: Long)
-    extends IntTensor {
+case class BroadcastTensor[T](tensor: JVMTensor[T], dimension: Dimension, _magnitude: Long)
+    extends JVMTensor[T] {
   override lazy val magnitude: Array[Long] = {
     if(_magnitude == 1) tensor.magnitude
     else {
@@ -102,7 +99,7 @@ case class BroadcastTensor(tensor: IntTensor, dimension: Dimension, _magnitude: 
       ret
     }
   }
-  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0): T = {
     val ret = Array.copyAs[Long](index, index.length)
     ret(dimension) = ret(dimension) % tensor.magnitudeIn(dimension)
     tensor.valueAt(ret, startingAt)
@@ -114,14 +111,14 @@ case class BroadcastTensor(tensor: IntTensor, dimension: Dimension, _magnitude: 
  * must provide values for all dimensions of the original tensor. The resultant
  * magnitude array is reduced in size to remove trailing "1" magnitudes.
  **/
-case class SliceTensor(tensor: IntTensor, sliceRange: Array[(Long, Long)])
-    extends IntTensor {
+case class SliceTensor[T](tensor: JVMTensor[T], sliceRange: Array[(Long, Long)])
+    extends JVMTensor[T] {
   override lazy val magnitude: Array[Long] =
     sliceRange
       .map({ case (_, len) => len})
       .reverse.dropWhile(_ == 1) //...drop all final dimensions with magnitude 1...
       .reverse
-  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0): T = {
     val shiftedIndex = Array.fill[Long](tensor.order)(0)
     Array.copy(index, 0, shiftedIndex, 0, index.length)
     for(ii <- 0 to (shiftedIndex.length - 1)) {
@@ -136,9 +133,9 @@ case class SliceTensor(tensor: IntTensor, sliceRange: Array[(Long, Long)])
  * The dimensionality and magnitude of this tensor may be different than the
  * original. The `elementSize` must be the same as the source tensor.
  **/
-case class ReshapeTensor(tensor: IntTensor, override val magnitude: Array[Long])
-    extends IntTensor {
-   override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+case class ReshapeTensor[T](tensor: JVMTensor[T], override val magnitude: Array[Long])
+    extends JVMTensor[T] {
+   override def valueAt(index: Array[Long], startingAt: Long = 0): T = {
      var idx = 0L
      var multiplier = 1L
      for(ii <- startingAt.toInt to (index.length - 1)) {
@@ -157,8 +154,8 @@ case class ReshapeTensor(tensor: IntTensor, override val magnitude: Array[Long])
  * implementation for joining -- both for in-memory size and for element value
  * access.
  **/
-case class JoinTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
-    extends IntTensor {
+case class JoinTensor[T](tensors: Array[JVMTensor[T]], joiningDimension: Dimension)
+    extends JVMTensor[T] {
   /*
    * It is assumed that the magnitude of all tensors is the same in all but
    * the joining dimension -- they may or may not be the same in the joining dimension.
@@ -187,7 +184,7 @@ case class JoinTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
   lazy val joinDimensionOffsets =
     tensors.map(_.magnitudeIn(joiningDimension)).scan(0L)(_ + _).init.toList.reverse
 
-  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0): T = {
     val idx = Array.copyAs[Long](index, index.length)
     val offsets = joinDimensionOffsets.dropWhile(_ > idx(joiningDimension + startingAt.toInt))
     //^^^ note: joinDimensionOffsets is stored in reverse order so this dropWhile
@@ -209,8 +206,8 @@ case class JoinTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
  * * the magnitudes of the constituent tensors are equal in all dimensions
  * * all constituent tensors have unitary magnitude in the joining dimension
  **/
-case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
-    extends IntTensor {
+case class StackTensor[T](tensors: Array[JVMTensor[T]], joiningDimension: Dimension)
+    extends JVMTensor[T] {
   override lazy val magnitude = {
     val extendedTensorMags =
       for(t <- tensors) yield {
@@ -221,7 +218,7 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
     extendedTensorMags(0)(joiningDimension) = tensors.length
     extendedTensorMags(0)
   }
-  override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+  override def valueAt(index: Array[Long], startingAt: Long = 0): T = {
     val idx = Array.copyAs[Long](index, index.length)
     idx(joiningDimension + startingAt.toInt) = 0
     tensors(index((joiningDimension + startingAt).toInt).toInt).valueAt(idx, startingAt)
@@ -232,10 +229,10 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
  * A tensor constructed from a source tensor by reversing the indexes
  * of element values along a single dimension.
  **/
- case class ReverseTensor(tensor: IntTensor, dimension: Dimension)
-     extends IntTensor {
+ case class ReverseTensor[T](tensor: JVMTensor[T], dimension: Dimension)
+     extends JVMTensor[T] {
    override def magnitude = tensor.magnitude
-   override def valueAt(index: Array[Long], startingAt: Long = 0): Int =
+   override def valueAt(index: Array[Long], startingAt: Long = 0): T =
      if((index.length - startingAt) >= dimension) {
        val idx = Array.copyAs[Long](index, index.length - startingAt.toInt)
        idx(dimension) = tensor.magnitude(dimension) - 1 - idx(dimension)
@@ -247,8 +244,8 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
  /**
   * A tensor constructed from a source tensor by exchanging two dimensions.
   **/
- case class PivotTensor(tensor: IntTensor, dim1: Dimension, dim2: Dimension)
-     extends IntTensor {
+ case class PivotTensor[T](tensor: JVMTensor[T], dim1: Dimension, dim2: Dimension)
+     extends JVMTensor[T] {
    override lazy val magnitude = {
      val mag = Array.fill[Long](max(tensor.order, max(dim1, dim2) + 1))(1)
      Array.copy(tensor.magnitude, 0, mag, 0, tensor.order)
@@ -257,7 +254,7 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
      mag(dim2) = swap
      mag
    }
-   override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+   override def valueAt(index: Array[Long], startingAt: Long = 0): T = {
      if(dim1 == dim2) tensor.valueAt(index)
      else {
        val idx: Array[Long] = {
@@ -283,9 +280,9 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
   * A tensor constructed by applying an (Int) => Int mapping from a source
   * tensor's elements.
   **/
- case class MapTensor(tensor: IntTensor, f: (Int) => Int) extends IntTensor {
+ case class MapTensor[T](tensor: JVMTensor[T], f: (T) => T) extends JVMTensor[T] {
    override def magnitude = tensor.magnitude
-   override def valueAt(index: Array[Long], startingAt: Long = 0): Int = f(tensor.valueAt(index, startingAt))
+   override def valueAt(index: Array[Long], startingAt: Long = 0): T = f(tensor.valueAt(index, startingAt))
  }
 
  /**
@@ -298,16 +295,15 @@ case class StackTensor(tensors: Array[IntTensor], joiningDimension: Dimension)
   * dimensions The slice is fed to the reduce function, and the result
   * value is what is returned.
   **/
- case class ReduceTensor(tensor: IntTensor, reduceOrders: Int, f: (IntTensor) => Int)
-    extends IntTensor {
+ case class ReduceTensor[T](tensor: JVMTensor[T], reduceOrders: Int, f: (JVMTensor[T]) => T)
+    extends JVMTensor[T] {
    override lazy val magnitude = {
      val ret = tensor.magnitude.drop(reduceOrders)
      if(ret.isEmpty) Array(1) else ret
    }
-   override def valueAt(index: Array[Long], startingAt: Long = 0): Int = {
+   override def valueAt(index: Array[Long], startingAt: Long = 0): T = {
      val sliceRanges = tensor.magnitude.take(reduceOrders).map(m => (0L, m)) :++ index.map(i => (i, 1L))
      val slice = SliceTensor(tensor, sliceRanges)
      f(slice)
    }
-
  }
