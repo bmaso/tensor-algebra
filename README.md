@@ -1,7 +1,12 @@
 # Tensor Algebra
 
-A Scala language implementation of a tensor algebra designed for GPU/hardware accelerated evaluation. The basic operations of
-the algebra are both highly expressive, and highly parallelizable.
+A Scala library for hadware accelerated computing. The principal feature is a
+tensor algebra designed for GPU/hardware accelerated evaluation. Typical speed improvements
+in the 20x-200x range vs optimized JVM-only implementations.
+
+The basic operations of the algebra are both highly expressive and highly parallelizable.
+Complex computations defined using the tensor algebra are relatively easy to program, and
+very efficient to execute at runtime.
 
 Each of the algebra's operations is amenable to highly parallelized implementations.
 Therefore it is possible to define different evaluators for efficiently calculating
@@ -14,67 +19,75 @@ varying scale:
 The basic operations of the algebra are individually simple to understand. The
 algebra is expressive, meaning that even extremely complex N-dimensional computations
 can be completely expressed as combinations of these basic operations. For example,
- matrix multiplication, convolution and cross-correlation, Fourier
-transforms, etc. can all be expressed with this algebra without looping or recursion.
+matrix multiplication, convolution and cross-correlation, Fourier
+transforms, complex physics and statistical simulations, etc. can all be expressed
+with this algebra.
 
-### Tensor Algebra's Basic Operations
+## Tensor Algebra's Basic Operations
 
-Recall that a "tensor" is just the formal name for an N-dimensional rectangular
-array of any dimension. This includes 0-D (scalar values), 1-D (arrays), 2-D (matrixes),
-3-D (rectangular volumes), and higher.
+Recall that a "tensor" is just the formal name for an N-dimensional rectangular. This includes
+0-D (scalar values), 1-D (arrays), 2-D (matrixes),
+3-D (rectangular volumes), and higher order tensors.
 
 An "*algebra*" is a fancy word for a set of combining operations at operate on
 the same type of values. In this case, the Tensor Algebra defines a set of basic
-operations that all take tensors as input.
+operations that all take one or more tensors as input, and produce tensors as output.
 
 The basic operations of this tensor algebra are:
-* ***translate*** -- define a new tensor by "moving" values in an original
-  tensor to different indexes using fixed offset in one or more dimension
-  * Translated tensors are "clipped" to the same dimensionality and magnitude as the original tensor
-  * Translated tensors are "backfilled" with a constant value, 0 by default.
-* ***broadcast*** -- copying a tensor in one dimension by duplication
-    * For example, imagine generating a 3x3x3 volume by duplicating and stacking
-      3 copies of a 3x3 tensor. The is a ***broadcast*** in the `_Z` dimension.
-    * In theory this can be defined as repeated ***join***s of a tensor with itself.
-      However, much more efficient implementations can be achieved by identifying
-      ***broadcast*** as a separate operation.
-* ***reshape*** -- Without altering the overall number of elements in a tensor,
-  define a tensor which takes an original tensor's elements while altering the
-  dimensionality and magnitude.
-  * For example changing a 3x4x5 tensor into a 10x6 tensor. Same number of elements,
-    different dimensionality and magnitude
-* ***slice*** -- A tensor defined as a rectangular portion of a source tensor
-* ***join*** -- Additively "stack" multiple tensors of the similar dimensionality
-  into a single tensor of higher dimensionality and/or magnitude
-* ***pivot*** -- Exchange the indexing in 2 dimensions. This effectively "rotates"
-  a tensor in 2 of its dimensions. For example, pivoting a 3-D tensor in the
-  `_X` and `_Y` dimensions yields a tensor with elements with indexes `(_Y, _X, _Z)`
-  order compared to the original tensor.
-* ***reverse*** -- Reverse the dimensions of a tensor.
-  * For example, after application a 4-D tensor
-    would have element indexes effectively reversed to `(_W, _Z, _Y, _X)` order.
-  * Could be implemented with repeated ***pivots***. However, much more efficient
-    implementations can be achieved by identifying ***reverse*** as a separate
-    operation.
 * ***map*** -- Create a new tensor by applying a 1:1 mapping from existing element
-  values to new element values.
-  * Could be defined using ***reduce***. However, much more efficient implementations
-    can be achieved by identifying ***map*** as a separate operation.
-* ***reduce*** -- Creating a new tensor with reduced dimensionality from an original
-  by combining elements along one or more dimensions using an arbitrary associative
-  combiner function.
-  * Note that the combiner function need not be commutative, only associative. There
-    is an implicit ordering to elements defined by the element indexing. Ordering
-    is always preserved when applying reducing functions.
-* ***aggregate*** -- Creating a new tensor by transforming slices of one
-  magnitude into resultant tensors of another dimension, and aggregating the
-  results. For example, calculating a histogram of the element values of a tensor
-  can easily be defined as an ***aggregate*** operation.
+  values to new element values. The dimenstionality and magnitude of the result tensor
+  is identical to the source tensor. For example, "*each element of the
+  result tensor is equal to the source tensor element at the same index times 2*".
+* ***reduce*** -- Creating a new tensor with reduced dimensionality and/or magnitude
+  from the source tensor by combining elements along one or more dimensions using an arbitrary associative
+  combiner function. For example, "*the sum of all elements in the source tensor*".
+* ***translate*** -- define a new tensor by moving the elements in the source
+  tensor to different indexes using fixed offset in one or more dimension.
+* ***reverse*** -- Reverse the *dimensions* of a tensor. For example, if the source
+  tensor is a 4D tensor with indexes `(_X, _Y, _Z, _W)`, the result tensor would
+  have the same element values with indexes "reversed" to `(_W, _Z, _Y, _X)` order.
+  That is, the result tensor's element value at index `(1, 3, 5, 7)` would be
+  the same as the source tensor element value at index `(_7, 5, 3, 1)`.
+* ***broadcast*** -- copying a tensor in one or more dimensions by duplication. For example,
+  imagine generating a 3x3x3 volume by duplicating and stacking
+  3 copies of a 3x3 tensor. The result tensor is generated by ***broadcast***ing the
+  source 2D tensor in the `_Z` dimension.
+* ***reshape*** -- Without altering the overall number of elements in a source tensor,
+  define a result tensor with potentially differnt magnitude and dimensionality. For example,
+  generating a 3x4x5 tensor from a 10x6 tensor: same number of elements, different
+  dimensionality and magnitude.
+* ***slice*** -- Generates a result tensor defined as a rectangular portion of
+  a source tensor. For example, generate a 2x2x2 tensor "slice" made of the
+  innermost elements of a 4x4x4 tensor.
+* ***join*** -- Additively "stack" multiple tensors of similar dimensionality
+  into a single tensor of higher dimensionality and/or magnitude.
+  * Example 1: generate a result 3x3x2 tensor by "joining" 2 source 3x3 tensors in
+    the `_Z` dimension.
+  * Example 2: generate a result 3x6 tensor by "joining" 2 source 3x3 tensors in the
+    `_Y` dimension.
+* ***pivot*** -- Generate a result tensor by exchanging a source tensor's indexes in 2
+  dimensions. This effectively "rotates" a tensor in 2 of its dimensions. For example,
+  pivoting a 3-D tensor in the `_X` and `_Y` dimensions yields a tensor with elements
+  with elements in `(_Y, _X, _Z)` order compared to the source tensor.
+* ***hylo*** -- Introduces iterative recursion into the tensor algebra. Iteratively
+  accumulates a tensor value by combining a source tensor with the accumulator
+  tensor from the immediately previous iteration. The iteration terminates when a
+  test predicate evaluates to `true`. This operation is based on the computer science
+  concept of a [hylomorph](https://en.wikipedia.org/wiki/Hylomorphism_(computer_science)),
+  from which it gets its name.
 
-By combining these basic Tensor Algebra operations we can define
-very complex operations without undue complexity: matrix multiplication, convolution
-& cross-correlation, Fourier transformation, complex image and sound manipulation
-functions, particle and field simulations, and much more.
+By combining these basic tensor algebra operations we can define
+arbitrarily complex matematical operations. The implementations are parallelizable and runnable
+on hardware accelerators such as GPUs or CPU processing units. Example operations that
+can be run 20x-200x faster than optimized, multithreaded JVM implementations:
+* matrix multiplication
+* convolution, cross-correlation, and the more general N-dimensional version of these
+  operations called "tensor contraction". These operations are widely used in signal
+  processing, physics simulations, neural networks, and other domains.
+* Many more examples: N-dimensional fourier transforms and wavelet analysis, complex image and
+sound manipulation functions, particle and field simulations, and much more.
+
+## Tensor Algebra Design and Features
 
 ## Tensor Algebra API Examples
 
@@ -84,9 +97,9 @@ The Tensor Algebra API is essentially a set of `TensorExpr` combinator functions
 Each of the basic operators ***translate***, ***reshape***, etc. produce a new
 `TensorExpr` from input `TensorExpr` values.
 
-Let's first consider how to define an expression that adds two 1-D tensors of the
-same magnitude together. This is the "Hello, World!" of GPU computing. We want to
-express element-by-element addition using the Tensor Algebra.
+This first example defines an expression that adds two 1-D tensors of the
+same magnitude together. This is the "Hello, World!" of hardware-accelerated (aka "GPGPU")
+computing. We want to express element-by-element addition using the Tensor Algebra.
 
 ```
 def add1DTensors(t1: TensorExpr[Tensor], t2: TensorExpr[Tensor]):
@@ -103,10 +116,10 @@ def add1DTensors(t1: TensorExpr[Tensor], t2: TensorExpr[Tensor]):
 * Given two tensor expressions of some length L
   * In this example we assume the tensor length match -- ideally
     we would assert this assumption
-* First, join the two 1-D tensors. This creates a single tensor `stacked`
-  of magnitude Lx2.
+* First, join the two 1-D tensors. This defines a single Lx2 tensor
+  (called `stacked` in the code)
 * Second, reduce `stacked` in the `_Y` dimension using the `_SUM`
-  reduction operation.
+  reduction operation. That is, add together the L pairs in the Lx2 tensor.
 * The result will be a tensor expression yielding a 1-D tensor of
   magnitude L where each element is the sum of the corresponding elements in the
   original tensors.
